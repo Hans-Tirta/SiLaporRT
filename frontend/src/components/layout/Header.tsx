@@ -169,11 +169,7 @@ const Header: React.FC = () => {
   }, []);
 
   const getNavigationItems = () => {
-    const publicItems = [
-      { path: "/", label: "Beranda", icon: Home },
-      { path: "/reports", label: "Laporan", icon: FileText },
-      { path: "/announcements", label: "Pengumuman", icon: Megaphone },
-    ];
+    const publicItems = [{ path: "/", label: "Beranda", icon: Home }];
 
     if (!isAuthenticated) {
       return publicItems;
@@ -181,6 +177,8 @@ const Header: React.FC = () => {
 
     const authenticatedItems = [
       ...publicItems,
+      { path: "/reports", label: "Laporan", icon: FileText },
+      { path: "/announcements", label: "Pengumuman", icon: Megaphone },
       { path: "/create-report", label: "Buat Laporan", icon: PlusCircle },
     ];
 
@@ -233,7 +231,7 @@ const Header: React.FC = () => {
                       "flex items-center space-x-2 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200",
                       isActive
                         ? "bg-primary-50 text-primary-700 dark:bg-gray-700 dark:text-orange-300"
-                        : "text-gray-600 dark:text-gray-300 hover:bg-primary-50 hover:text-primary-700 dark:hover:bg-gray-700 dark:hover:text-gray-100"
+                        : "text-gray-600 dark:text-gray-300 hover:bg-primary-50 hover:text-primary-700 dark:hover:bg-gray-700 dark:hover:text-gray-100",
                     )}
                   >
                     <Icon className="h-4 w-4" />
@@ -328,7 +326,7 @@ const Header: React.FC = () => {
                                       {
                                         addSuffix: true,
                                         locale: id,
-                                      }
+                                      },
                                     )}
                                   </p>
                                 </div>
@@ -392,7 +390,7 @@ const Header: React.FC = () => {
                   <ChevronDown
                     className={cn(
                       "h-4 w-4 text-gray-400 transition-transform",
-                      isUserDropdownOpen && "rotate-180"
+                      isUserDropdownOpen && "rotate-180",
                     )}
                   />
                 </button>
@@ -462,7 +460,7 @@ const Header: React.FC = () => {
                         <LogOut
                           className={cn(
                             "h-4 w-4 mr-3",
-                            isLoggingOut && "animate-spin"
+                            isLoggingOut && "animate-spin",
                           )}
                         />
                         {isLoggingOut ? "Keluar..." : "Keluar"}
@@ -518,7 +516,7 @@ const Header: React.FC = () => {
                       "flex items-center space-x-3 rounded-md px-3 py-2 text-base font-medium transition-colors",
                       isActive
                         ? "bg-primary-50 text-primary-700 dark:bg-gray-700 dark:text-gray-100"
-                        : "text-gray-600 dark:text-gray-300 hover:bg-primary-50 hover:text-primary-700 dark:hover:bg-gray-700 dark:hover:text-gray-100"
+                        : "text-gray-600 dark:text-gray-300 hover:bg-primary-50 hover:text-primary-700 dark:hover:bg-gray-700 dark:hover:text-gray-100",
                     )}
                   >
                     <Icon className="h-5 w-5" />

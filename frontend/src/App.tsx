@@ -116,33 +116,41 @@ function App() {
                       <Route
                         path="reports"
                         element={
-                          <RequireCompleteProfile>
-                            <ReportsPage />
-                          </RequireCompleteProfile>
+                          <ProtectedRoute>
+                            <RequireCompleteProfile>
+                              <ReportsPage />
+                            </RequireCompleteProfile>
+                          </ProtectedRoute>
                         }
                       />
                       <Route
                         path="reports/:id"
                         element={
-                          <RequireCompleteProfile>
-                            <ReportDetailPage />
-                          </RequireCompleteProfile>
+                          <ProtectedRoute>
+                            <RequireCompleteProfile>
+                              <ReportDetailPage />
+                            </RequireCompleteProfile>
+                          </ProtectedRoute>
                         }
                       />
                       <Route
                         path="announcements"
                         element={
-                          <RequireCompleteProfile>
-                            <AnnouncementsPage />
-                          </RequireCompleteProfile>
+                          <ProtectedRoute>
+                            <RequireCompleteProfile>
+                              <AnnouncementsPage />
+                            </RequireCompleteProfile>
+                          </ProtectedRoute>
                         }
                       />
                       <Route
                         path="announcements/:id"
                         element={
-                          <RequireCompleteProfile>
-                            <AnnouncementDetailPage />
-                          </RequireCompleteProfile>
+                          <ProtectedRoute>
+                            <RequireCompleteProfile>
+                              <AnnouncementDetailPage />
+                            </RequireCompleteProfile>
+                          </ProtectedRoute>
                         }
                       />
                       {/* Protected routes */}
