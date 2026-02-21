@@ -61,7 +61,6 @@ class ReportService {
   }
 
   static async generateReportCategory(data: CreateReportData) {
-    console.log(data);
     try {
       const category = await generateCategory(data.title, data.description);
       if (!category) {
@@ -103,7 +102,6 @@ class ReportService {
       50,
       Math.max(1, parseInt(params.pageSize ?? "10", 10) || 10),
     );
-    console.log(params.status);
     try {
       const { total, items } = await ReportRepository.getAllReports({
         page,
@@ -153,7 +151,6 @@ class ReportService {
       50,
       Math.max(1, parseInt(params.pageSize ?? "10", 10) || 10),
     );
-    console.log(params.status);
     try {
       const { total, items } = await ReportRepository.getMyReports({
         page,
@@ -213,7 +210,6 @@ class ReportService {
 
   static async updateStatus(reportId: string, status: ReportStatus) {
     try {
-      console.log("masuk update status");
       const updatedReport = await ReportRepository.updateStatus(
         reportId,
         status,
