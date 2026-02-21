@@ -140,7 +140,7 @@ const ChatPage: React.FC = () => {
               const isCitizen = report.user?.role === Role.CITIZEN;
               const sameRT = report.user?.rtId === user.rtId;
               const validStatus =
-                report.status === "IN_PROGRESS" || report.status === "PENDING";
+                report.status === "IN_PROGRESS";
 
               return hasUser && isCitizen && user.rtId && sameRT && validStatus;
             })

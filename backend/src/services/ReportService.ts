@@ -1,5 +1,5 @@
 import ReportRepository from "../repositories/ReportRepository";
-import { ReportStatus, ReportCategory, Role } from "@prisma/client";
+import { ReportStatus, ReportCategory, Role, Attachment } from "@prisma/client";
 import { CreateReportData } from "../types/reportTypes";
 import { generateCategory } from "../utils/llm";
 import { NotificationService } from "./NotificationService";
@@ -64,7 +64,7 @@ class ReportService {
     console.log(data);
     try {
       const category = await generateCategory(data.title, data.description);
-      if(!category) {
+      if (!category) {
         throw new Error("AI IS NOT WORKING");
       }
       // console.log({ category });
@@ -79,22 +79,25 @@ class ReportService {
     }
   }
 
-  static async getAllReports(params: {
-    page?: any;
-    pageSize?: any;
-    q?: string;
-    category?: string;
-    priority?: string;
-    status?: string;
-    includePrivate?: string | boolean;
-    isPublic?: string | boolean;
-    dateFrom?: string;
-    dateTo?: string;
-    userId?: string;
-    sortBy?: string;
-    upvoteDateFrom?: string;
-    upvoteDateTo?: string;
-  }, rtId?: string) {
+  static async getAllReports(
+    params: {
+      page?: any;
+      pageSize?: any;
+      q?: string;
+      category?: string;
+      priority?: string;
+      status?: string;
+      includePrivate?: string | boolean;
+      isPublic?: string | boolean;
+      dateFrom?: string;
+      dateTo?: string;
+      userId?: string;
+      sortBy?: string;
+      upvoteDateFrom?: string;
+      upvoteDateTo?: string;
+    },
+    rtId?: string,
+  ) {
     const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
     const pageSize = Math.min(
       50,
@@ -103,6 +106,56 @@ class ReportService {
     console.log(params.status);
     try {
       const { total, items } = await ReportRepository.getAllReports({
+        page,
+        pageSize,
+        q: params.q,
+        category: params.category,
+        priority: params.priority,
+        status: params.status,
+        userId: params.userId,
+        includePrivate:
+          params.includePrivate === true || params.includePrivate === "true",
+        isPublic: params.isPublic,
+        dateFrom: params.dateFrom,
+        dateTo: params.dateTo,
+        sortBy: params.sortBy,
+        upvoteDateFrom: params.upvoteDateFrom,
+        upvoteDateTo: params.upvoteDateTo,
+        rtId,
+      });
+      return { page, pageSize, total, items };
+    } catch (error) {
+      throw new Error(`Failed to fetch reports: ${error}`);
+    }
+  }
+
+  static async getMyReports(
+    params: {
+      page?: any;
+      pageSize?: any;
+      q?: string;
+      category?: string;
+      priority?: string;
+      status?: string;
+      includePrivate?: string | boolean;
+      isPublic?: string | boolean;
+      dateFrom?: string;
+      dateTo?: string;
+      userId?: string;
+      sortBy?: string;
+      upvoteDateFrom?: string;
+      upvoteDateTo?: string;
+    },
+    rtId?: string,
+  ) {
+    const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
+    const pageSize = Math.min(
+      50,
+      Math.max(1, parseInt(params.pageSize ?? "10", 10) || 10),
+    );
+    console.log(params.status);
+    try {
+      const { total, items } = await ReportRepository.getMyReports({
         page,
         pageSize,
         q: params.q,
@@ -294,20 +347,35 @@ class ReportService {
       throw new Error(`Failed to fetch all reports statistics: ${error}`);
     }
   }
+
   static async updateReportStatus(
     reportId: string,
     responderId: string,
-    attachments?: string[],
+    attachments?: Attachment[],
     message?: string,
   ) {
     try {
-      const result = await ReportRepository.updateReportStatus(
+      const updatedReport = await ReportRepository.updateReportStatus(
         reportId,
         responderId,
         attachments,
         message,
       );
-      return result;
+
+      const baseUrl = process.env.FRONTEND_URL_PROD ?? process.env.FRONTEND_URL;
+      const url = `${baseUrl}/reports/${updatedReport.id}`;
+
+      if (updatedReport) {
+        NotificationService.sendNotificationByUserId(
+          [updatedReport.userId!],
+          `Laporan "${updatedReport.title}" Telah Diperbarui!`,
+          `Status laporan kamu kini berubah menjadi ${updatedReport.status}`,
+          url,
+          "https://res.cloudinary.com/dgnedkivd/image/upload/v1757562088/silaporrt/dev/logo/logo_lnenhb.png",
+          "REPORT",
+        );
+      }
+      return updatedReport;
     } catch (error) {
       throw new Error(`Failed to update report status: ${error}`);
     }

@@ -34,6 +34,11 @@ import AdvancedFilter, {
 } from "../../components/common/AdvancedFilter";
 import ReportManageTableSkeleton from "./components/ReportManageTableSkeleton";
 import { updateReportStat } from "../../services/reportService";
+import CloudinaryUpload from "../../components/upload/CloudinaryUpload";
+import { CloudinaryFile } from "../../types/announcement.types";
+import { classifyFile } from "../../utils/classifyFile";
+import { useToast } from "../../hooks/useToast";
+import Textarea from "../../components/ui/Textarea";
 
 export default function ManageReportsPage() {
   const navigate = useNavigate();
@@ -46,10 +51,10 @@ export default function ManageReportsPage() {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedPriority, setSelectedPriority] = useState("");
   const [selectedStatus, setSelectedStatus] = useState(
-    searchParams.get("status") || ""
+    searchParams.get("status") || "",
   );
   const [dateRange, setDateRange] = useState<{ from?: string; to?: string }>(
-    {}
+    {},
   );
   const [selectedVisibility, setSelectedVisibility] = useState("");
   const [sortBy, setSortBy] = useState("");
@@ -58,8 +63,28 @@ export default function ManageReportsPage() {
   const dialogRef = useRef<HTMLDivElement>(null);
   const [currentReportId, setCurrentReportId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | undefined>(undefined);
+  const [dialogAttachments, setDialogAttachments] = useState<
+    {
+      id: string;
+      filename: string;
+      url: string;
+      fileType: "image" | "video" | "audio" | "document";
+      provider?: "cloudinary";
+      publicId?: string;
+      resourceType?: string;
+      format?: string;
+      bytes?: number;
+      width?: number;
+      height?: number;
+      createdAt: string;
+    }[]
+  >([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [responseError, setResponseError] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [isResponseLoading, setIsResponseLoading] = useState(false);
+  const toast = useToast();
 
-  // Update selected status when URL params change
   useEffect(() => {
     const statusParam = searchParams.get("status");
     if (statusParam && statusParam !== selectedStatus) {
@@ -67,7 +92,6 @@ export default function ManageReportsPage() {
     }
   }, [searchParams, selectedStatus]);
 
-  // Helper to calculate date range from period
   const getDateRangeFromPeriod = (period: string) => {
     const from = new Date();
     const to = new Date();
@@ -133,7 +157,13 @@ export default function ManageReportsPage() {
   const closeDialog = () => {
     document.body.style.overflow = "auto";
     setIsDialogOpen(false);
+    setMessage(undefined);
+    setDialogAttachments([]);
+    setCurrentReportId(null);
+    setImageError(null);
+    setResponseError(null);
   };
+
   const openDialog = () => {
     if (isDialogOpen) {
       document.body.style.overflow = "hidden";
@@ -143,14 +173,52 @@ export default function ManageReportsPage() {
     setIsDialogOpen(true);
   };
 
-  const updateReport = async (attachments?: string[], message?: string) => {
-    if (!currentReportId) return;
-    const response = await updateReportStat(
-      currentReportId,
-      attachments,
-      message
-    );
-    return response;
+  const handleDialogUploaded = (files: CloudinaryFile[]) => {
+    const mapped = files.map((f) => ({
+      id: f.public_id,
+      filename: f.original_filename || "file",
+      url: f.secure_url,
+      fileType: classifyFile(f),
+      provider: "cloudinary" as const,
+      publicId: f.public_id,
+      resourceType: f.resource_type,
+      format: f.format,
+      bytes: f.bytes,
+      width: f.width,
+      height: f.height,
+      createdAt: new Date().toISOString(),
+    }));
+    setDialogAttachments((prev) => [...prev, ...mapped]);
+  };
+
+  const handleDialogRemove = (identifier: string) => {
+    setDialogAttachments((prev) => prev.filter((a) => a.id !== identifier));
+  };
+
+  const handleSubmitResponse = async () => {
+    setIsResponseLoading(true);
+    try {
+      if (!currentReportId) return;
+
+      if (message === undefined) {
+        setResponseError("Pesan harus diisi");
+        return;
+      }
+
+      if (dialogAttachments.length === 0) {
+        setImageError("Lampiran harus diisi");
+        return;
+      }
+      await updateReportStat(currentReportId, dialogAttachments, message);
+      closeDialog();
+      toast.success("Tanggapan berhasil dikirim", "Berhasil");
+      qc.invalidateQueries({ queryKey: ["admin-reports"] });
+    } catch (error) {
+      toast.error("Terjadi kesalahan saat mengirim tanggapan", "Gagal");
+      console.error(error);
+    } finally {
+      setIsResponseLoading(false);
+    }
   };
 
   const { data, isLoading, isError } = useQuery({
@@ -170,7 +238,9 @@ export default function ManageReportsPage() {
       },
     ],
     queryFn: () => {
-      const upvoteDateRange = selectedPeriod ? getDateRangeFromPeriod(selectedPeriod) : {};
+      const upvoteDateRange = selectedPeriod
+        ? getDateRangeFromPeriod(selectedPeriod)
+        : {};
       return adminListReports({
         page,
         pageSize,
@@ -200,10 +270,8 @@ export default function ManageReportsPage() {
       message?: string;
     }) => updateReportStatus(id, status, message),
     onMutate: async ({ id, status }) => {
-      // Cancel outgoing refetches
       await qc.cancelQueries({ queryKey: ["admin-reports"] });
 
-      // Snapshot previous data
       const previousData = qc.getQueryData([
         "admin-reports",
         {
@@ -218,7 +286,6 @@ export default function ManageReportsPage() {
         },
       ]);
 
-      // Optimistically update
       qc.setQueryData(
         [
           "admin-reports",
@@ -241,16 +308,15 @@ export default function ManageReportsPage() {
             items: data.items.map((item: Report) =>
               item.id === id
                 ? { ...item, status: status as Report["status"] }
-                : item
+                : item,
             ),
           };
-        }
+        },
       );
 
       return { previousData };
     },
     onError: (_err, _variables, context) => {
-      // Rollback on error
       if (context?.previousData) {
         qc.setQueryData(
           [
@@ -266,12 +332,11 @@ export default function ManageReportsPage() {
               dateRange,
             },
           ],
-          context.previousData
+          context.previousData,
         );
       }
     },
     onSettled: (_, __, variables) => {
-      // Always refetch to ensure consistency
       qc.invalidateQueries({ queryKey: ["admin-reports"] });
       qc.invalidateQueries({ queryKey: ["reports"] });
       qc.invalidateQueries({ queryKey: ["report", variables.id] });
@@ -348,10 +413,21 @@ export default function ManageReportsPage() {
     return labels[category as keyof typeof labels] || category;
   };
 
+  const getStatusLabel = (status: string) => {
+    const labels = {
+      PENDING: "Menunggu",
+      IN_PROGRESS: "Diproses",
+      RESOLVED: "Selesai",
+      REJECTED: "Ditolak",
+      CLOSED: "Ditutup",
+    };
+    return labels[status as keyof typeof labels] || status;
+  };
+
   const getPriorityIndicator = (report: Report) => {
     const daysSinceCreated = Math.floor(
       (Date.now() - new Date(report.createdAt).getTime()) /
-        (1000 * 60 * 60 * 24)
+        (1000 * 60 * 60 * 24),
     );
 
     if (report.upvoteCount >= 10 || daysSinceCreated >= 7) {
@@ -592,16 +668,16 @@ export default function ManageReportsPage() {
             </div>
           ) : (
             <>
-              {/* Desktop Table View */}
               <div className="hidden lg:block overflow-x-auto">
                 <table className="min-w-full table-fixed">
                   <colgroup>
-                    <col className="w-35/100" /> {/* Laporan - 35% */}
-                    <col className="w-1/10" /> {/* Kategori - 10% */}
-                    <col className="w-1/10" /> {/* Prioritas - 10% */}
-                    <col className="w-1/10" /> {/* Visibilitas - 10% */}
-                    <col className="w-2/10" /> {/* Tanggal - 20% */}
-                    <col className="w-15/100" /> {/* Status - 15% */}
+                    <col className="w-[30%]" /> {/* Laporan - 30% */}
+                    <col className="w-[12%]" /> {/* Kategori - 12% */}
+                    <col className="w-[10%]" /> {/* Prioritas - 10% */}
+                    <col className="w-[10%]" /> {/* Visibilitas - 10% */}
+                    <col className="w-[15%]" /> {/* Tanggal - 15% */}
+                    <col className="w-[12%]" /> {/* Status - 12% */}
+                    <col className="w-[11%]" /> {/* Action - 11% */}
                   </colgroup>
                   <thead>
                     <tr className="border-b border-gray-200 dark:border-gray-700">
@@ -622,6 +698,9 @@ export default function ManageReportsPage() {
                       </th>
                       <th className="text-left py-4 pr-4 text-sm font-medium text-gray-600 dark:text-gray-300">
                         Status
+                      </th>
+                      <th className="text-left py-4 pr-4 text-sm font-medium text-gray-600 dark:text-gray-300">
+                        Action
                       </th>
                     </tr>
                   </thead>
@@ -704,9 +783,18 @@ export default function ManageReportsPage() {
                                 </p>
                               )}
                               {report.isAnonymous && (
-                                <p className="text-gray-500 dark:text-gray-300">Anonim</p>
+                                <p className="text-gray-500 dark:text-gray-300">
+                                  Anonim
+                                </p>
                               )}
                             </div>
+                          </td>
+                          <td className="py-5 pr-4">
+                            <Badge variant="default" size="sm">
+                              <span className="block truncate text-xs">
+                                {getStatusLabel(report.status)}
+                              </span>
+                            </Badge>
                           </td>
                           <td className="py-5 pr-4">
                             <Button
@@ -717,7 +805,7 @@ export default function ManageReportsPage() {
                                 setCurrentReportId(report.id);
                               }}
                             >
-                              Next Step
+                              Tanggapi
                             </Button>
                           </td>
                         </tr>
@@ -846,10 +934,10 @@ export default function ManageReportsPage() {
 
           <Card
             ref={dialogRef}
-            className="absolute z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[300px] bg-gray-50 dark:bg-gray-800 rounded-3xl "
+            className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-[500px] bg-gray-50 dark:bg-gray-800 rounded-3xl max-h-[85vh] overflow-y-auto"
           >
-            <CardHeader className="flex flex-row justify-between ">
-              <CardTitle>Chupapimunyayo</CardTitle>
+            <CardHeader className="flex flex-row justify-between">
+              <CardTitle>Tanggapi Laporan</CardTitle>
               <X
                 className="w-5 h-5 hover:cursor-pointer"
                 onClick={closeDialog}
@@ -857,18 +945,36 @@ export default function ManageReportsPage() {
             </CardHeader>
 
             <CardContent>
-              <div className="flex justify-between flex-col gap-4">
-                <Input
-                  label="response"
+              <div className="flex flex-col gap-4">
+                <Textarea
+                  label="Pesan Tanggapan"
                   showCounter
                   limit={200}
+                  placeholder="Isi Tanggapan Anda"
+                  error={responseError}
                   onChange={(e) => setMessage(e.target.value)}
                 />
+
+                <CloudinaryUpload
+                  folder="reports"
+                  multiple
+                  accept="image/jpeg,image/png,image/jpg"
+                  maxFiles={3}
+                  attachments={dialogAttachments}
+                  onUploaded={handleDialogUploaded}
+                  onRemove={handleDialogRemove}
+                  onUploadingChange={setIsUploading}
+                  error={imageError}
+                />
+
                 <Button
-                  className=""
-                  onClick={() => updateReport(undefined, message)}
+                  onClick={handleSubmitResponse}
+                  disabled={
+                    isUploading || (!message && dialogAttachments.length === 0)
+                  }
+                  loading={isResponseLoading}
                 >
-                  Submit
+                  {isUploading ? "Mengunggah..." : "Kirim Tanggapan"}
                 </Button>
               </div>
             </CardContent>

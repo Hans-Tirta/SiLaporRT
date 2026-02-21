@@ -1,5 +1,5 @@
 import prisma from "../config/prisma";
-import { ReportStatus } from "@prisma/client";
+import { Attachment, ReportStatus } from "@prisma/client";
 import { CreateReportData } from "../types/reportTypes";
 
 const visibleWhere = (includePrivate: boolean = false) => {
@@ -138,8 +138,6 @@ class ReportRepository {
       if (sortBy === "oldest") {
         orderBy = { createdAt: "asc" };
       } else if (sortBy === "most_liked") {
-        // For most liked, we'll need to do a raw query or use aggregation
-        // We'll fetch all matching reports and sort them by upvote count
         const upvoteWhere: any = {};
         if (upvoteDateFrom || upvoteDateTo) {
           upvoteWhere.createdAt = {};
@@ -153,21 +151,27 @@ class ReportRepository {
           }
         }
 
-        // Get total count
-        const total = await prisma.report.count({ where });
+        const total = await prisma.report.count({
+          where: {
+            ...where,
+            status: { notIn: ["RESOLVED", "REJECTED", "CLOSED"] },
+          },
+        });
 
-        // Fetch reports with upvote counts
         const reportsWithUpvotes = await prisma.report.findMany({
-          where,
+          where: {
+            ...where,
+            status: { notIn: ["RESOLVED", "REJECTED", "CLOSED"] },
+          },
           include: {
             location: true,
             user: {
-              select: { 
-                id: true, 
-                name: true, 
-                email: true, 
-                role: true, 
-                rtId: true, 
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                rtId: true,
                 isDeleted: true,
                 isActive: true,
                 createdAt: true,
@@ -185,9 +189,10 @@ class ReportRepository {
           },
         });
 
-        // Sort by upvote count and paginate
         const sortedReports = reportsWithUpvotes
-          .sort((a: any, b: any) => b.reportUpvotes.length - a.reportUpvotes.length)
+          .sort(
+            (a: any, b: any) => b.reportUpvotes.length - a.reportUpvotes.length,
+          )
           .slice(skip, skip + pageSize)
           .map((report: any) => {
             const { reportUpvotes, ...rest } = report;
@@ -198,7 +203,175 @@ class ReportRepository {
       }
 
       const [total, items] = await Promise.all([
-        prisma.report.count({ where }),
+        prisma.report.count({
+          where: {
+            ...where,
+            status: { notIn: ["RESOLVED", "REJECTED", "CLOSED"] },
+          },
+        }),
+        prisma.report.findMany({
+          where: {
+            ...where,
+            status: { notIn: ["RESOLVED", "REJECTED", "CLOSED"] },
+          },
+          skip,
+          take: pageSize,
+          include: {
+            location: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                rtId: true,
+                isDeleted: true,
+                isActive: true,
+                createdAt: true,
+                updatedAt: true,
+                profile: true,
+              } as any,
+            },
+            attachments: {
+              select: { id: true, filename: true, url: true, fileType: true },
+            },
+          },
+          orderBy,
+        }),
+      ]);
+      return { total, items };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  static async getMyReports({
+    page,
+    pageSize,
+    q,
+    category,
+    priority,
+    status,
+    userId,
+    includePrivate = false,
+    isPublic,
+    dateFrom,
+    dateTo,
+    sortBy,
+    upvoteDateFrom,
+    upvoteDateTo,
+    rtId,
+  }: any) {
+    try {
+      const where: any = userId ? {} : { ...visibleWhere(includePrivate) };
+
+      if (isPublic === "true" || isPublic === true) {
+        where.isPublic = true;
+      } else if (isPublic === "false" || isPublic === false) {
+        where.isPublic = false;
+      }
+
+      if (rtId) {
+        where.user = {
+          rtId: rtId,
+        };
+      }
+
+      if (q && q.trim()) {
+        where.OR = [
+          ...(where.OR || []),
+          { title: { contains: q, mode: "insensitive" } },
+          { description: { contains: q, mode: "insensitive" } },
+        ];
+      }
+      if (category) where.category = category;
+      if (priority) where.priority = priority;
+      if (status) where.status = status;
+
+      if (dateFrom || dateTo) {
+        where.createdAt = {};
+        if (dateFrom) {
+          where.createdAt.gte = new Date(dateFrom);
+        }
+        if (dateTo) {
+          const endDate = new Date(dateTo);
+          endDate.setHours(23, 59, 59, 999);
+          where.createdAt.lte = endDate;
+        }
+      }
+      if (userId) where.userId = userId;
+
+      const skip = (page - 1) * pageSize;
+
+      // Determine orderBy based on sortBy parameter
+      let orderBy: any = { createdAt: "desc" }; // Default: newest first
+
+      if (sortBy === "oldest") {
+        orderBy = { createdAt: "asc" };
+      } else if (sortBy === "most_liked") {
+        const upvoteWhere: any = {};
+        if (upvoteDateFrom || upvoteDateTo) {
+          upvoteWhere.createdAt = {};
+          if (upvoteDateFrom) {
+            upvoteWhere.createdAt.gte = new Date(upvoteDateFrom);
+          }
+          if (upvoteDateTo) {
+            const endDate = new Date(upvoteDateTo);
+            endDate.setHours(23, 59, 59, 999);
+            upvoteWhere.createdAt.lte = endDate;
+          }
+        }
+
+        const total = await prisma.report.count({
+          where,
+        });
+
+        const reportsWithUpvotes = await prisma.report.findMany({
+          where,
+
+          include: {
+            location: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                rtId: true,
+                isDeleted: true,
+                isActive: true,
+                createdAt: true,
+                updatedAt: true,
+                profile: true,
+              } as any,
+            },
+            attachments: {
+              select: { id: true, filename: true, url: true, fileType: true },
+            },
+            reportUpvotes: {
+              where: upvoteWhere,
+              select: { id: true },
+            },
+          },
+        });
+
+        const sortedReports = reportsWithUpvotes
+          .sort(
+            (a: any, b: any) => b.reportUpvotes.length - a.reportUpvotes.length,
+          )
+          .slice(skip, skip + pageSize)
+          .map((report: any) => {
+            const { reportUpvotes, ...rest } = report;
+            return rest;
+          });
+
+        return { total, items: sortedReports };
+      }
+
+      const [total, items] = await Promise.all([
+        prisma.report.count({
+          where,
+        }),
         prisma.report.findMany({
           where,
           skip,
@@ -206,12 +379,12 @@ class ReportRepository {
           include: {
             location: true,
             user: {
-              select: { 
-                id: true, 
-                name: true, 
-                email: true, 
-                role: true, 
-                rtId: true, 
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                rtId: true,
                 isDeleted: true,
                 isActive: true,
                 createdAt: true,
@@ -391,7 +564,7 @@ class ReportRepository {
     reportId: string,
     responderId: string,
     message: string,
-    attachments?: string[]
+    attachments?: string[],
   ) {
     try {
       return await prisma.$transaction(async (tx) => {
@@ -494,12 +667,12 @@ class ReportRepository {
         where,
         include: {
           location: true,
-          user: { 
-            select: { 
-              id: true, 
-              name: true, 
-              email: true, 
-              role: true, 
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
               rtId: true,
               isActive: true,
               isDeleted: true,
@@ -554,12 +727,12 @@ class ReportRepository {
         data: { isPublic: !report.isPublic },
         include: {
           location: true,
-          user: { 
-            select: { 
-              id: true, 
-              name: true, 
-              email: true, 
-              role: true, 
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
               rtId: true,
               isActive: true,
               isDeleted: true,
@@ -621,57 +794,92 @@ class ReportRepository {
     }
   }
 
-  static async nextStep(currentStatus: ReportStatus) {
+  static nextStep(currentStatus: ReportStatus) {
     if (currentStatus === "PENDING") {
       return "IN_PROGRESS";
     } else if (currentStatus === "IN_PROGRESS") {
       return "RESOLVED";
     }
   }
+
   static async updateReportStatus(
     reportId: string,
     responderId: string,
-    attachments?: string[],
-    message?: string
+    attachments?: Attachment[],
+    message?: string,
   ) {
     const report = await prisma.report.findUnique({
       where: { id: reportId },
     });
 
-    console.log("current status", report?.status);
+    if (!report) {
+      throw new Error("Report not found");
+    }
 
-    console.log("next status", this.nextStep(report?.status!));
-    // try {
-    //   const result = await prisma.$transaction(async (tx) => {
-    //     await tx.response.create({
-    //       data: {
-    //         reportId,
-    //         responderId,
-    //         message: message ?? "",
-    //         ...(attachments && attachments.length > 0
-    //           ? {
-    //               attachments: {
-    //                 create: attachments.map((attachment) => ({
-    //                   filename: attachment,
-    //                   url: attachment,
-    //                   fileType: "image",
-    //                 })),
-    //               },
-    //             }
-    //           : {}),
-    //       },
-    //     });
+    try {
+      const updatedReport = await prisma.$transaction(async (tx) => {
+        await tx.response.create({
+          data: {
+            reportId,
+            responderId,
+            message: message ?? "",
+            ...(attachments && attachments.length > 0
+              ? {
+                  attachments: {
+                    create: attachments.map((att) => ({
+                      filename: att.filename,
+                      url: att.url,
+                      fileType: att.fileType,
+                      provider: att.provider,
+                      publicId: att.publicId,
+                      resourceType: att.resourceType,
+                      format: att.format,
+                      bytes: att.bytes,
+                      width: att.width,
+                      height: att.height,
+                    })),
+                  },
+                }
+              : {}),
+          },
+        });
 
-    //     await tx.report.update({
-    //       where: { id: reportId },
-    //       data: { status },
-    //     });
-    //   });
+        const updated = await tx.report.update({
+          where: { id: reportId },
+          data: { status: this.nextStep(report.status!) },
+          include: {
+            location: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                profile: true,
+              },
+            },
+            attachments: {
+              select: { id: true, filename: true, url: true, fileType: true },
+            },
+            responses: {
+              include: {
+                responder: {
+                  select: { name: true, role: true, profile: true },
+                },
+                attachments: true,
+              },
+              orderBy: { createdAt: "asc" },
+            },
+          },
+        });
 
-    //   return result;
-    // } catch (error) {
-    //   throw error;
-    // }
+        return updated;
+      });
+
+      return updatedReport;
+    } catch (error) {
+      throw error;
+    }
   }
 }
 

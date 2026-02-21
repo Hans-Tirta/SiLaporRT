@@ -1,5 +1,10 @@
 import { request } from "./api";
-import { CreateReportFormData, Report, ReportCategory } from "../types/report.types";
+import {
+  Attachment,
+  CreateReportFormData,
+  Report,
+  ReportCategory,
+} from "../types/report.types";
 import { CloudinaryFile } from "../types/announcement.types";
 import { classifyFile } from "../utils/classifyFile";
 
@@ -176,7 +181,7 @@ export async function getAllReportsStatistic() {
 
 export async function updateReportStat(
   reportId: string,
-  attachments?: string[],
+  attachments?: Attachment[],
   message?: string,
 ) {
   try {
@@ -229,7 +234,6 @@ export async function getReportsByStatus(status: string): Promise<Report[]> {
   }
 }
 
-// Get reports by category
 export async function getReportsByCategory(
   category: string,
 ): Promise<Report[]> {

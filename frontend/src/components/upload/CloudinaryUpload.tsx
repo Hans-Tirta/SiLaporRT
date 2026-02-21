@@ -36,6 +36,7 @@ type Props = {
   onRemove?: (identifier: string) => void; // Use id for database attachments, publicId for new uploads
   onError?: (message: string) => void;
   onUploadingChange?: (isUploading: boolean) => void; // New prop to track upload status
+  error?: string | null;
   className?: string;
 };
 
@@ -49,6 +50,7 @@ const CloudinaryUpload: React.FC<Props> = ({
   onRemove,
   onError,
   onUploadingChange,
+  error,
   className,
 }) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -197,9 +199,11 @@ const CloudinaryUpload: React.FC<Props> = ({
         className={`
           border-2 border-dashed rounded-xl p-6 transition cursor-pointer
           ${
-            hasFiles
-              ? "border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30"
-              : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+            error
+              ? "border-red-400 dark:border-red-500 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30"
+              : hasFiles
+                ? "border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30"
+                : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
           }
           ${
             attachments.length >= maxFiles
@@ -242,6 +246,10 @@ const CloudinaryUpload: React.FC<Props> = ({
           />
         </div>
       </div>
+
+      {error && (
+        <p className="mt-2 text-sm text-red-500 dark:text-red-400">{error}</p>
+      )}
 
       {uploading && (
         <div className="mt-2 flex items-center gap-2 text-sm text-primary-600">

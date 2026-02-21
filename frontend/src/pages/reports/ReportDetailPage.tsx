@@ -453,14 +453,23 @@ const ReportDetailPage: React.FC = () => {
       {report.responseCount > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Tanggapan Resmi RT</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Tanggapan Resmi RT</CardTitle>
+              <Badge variant={statusInfo.variant} size="sm">
+                {statusInfo.label}
+              </Badge>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {report.responses.map((response: Response) => (
+              {report.responses.map((response: Response, index: number) => (
                 <div
                   key={response.id}
-                  className="bg-primary-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-4"
+                  className={`rounded-lg p-4  ${
+                    index === 0
+                      ? " bg-primary-50 dark:bg-gray-700 border  border-gray-200 dark:border-gray-600"
+                      : "bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600"
+                  }`}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center">
@@ -486,13 +495,41 @@ const ReportDetailPage: React.FC = () => {
                         </p>
                       </div>
                     </div>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">
-                      {formatDateTime(response.createdAt)}
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {formatRelativeTime(response.createdAt)}
                     </span>
                   </div>
-                  <p className="text-gray-600 dark:text-gray-300 ml-11">
-                    {response.message}
-                  </p>
+
+                  {response.message && (
+                    <p className="text-gray-600 dark:text-gray-300 ml-11 mb-3">
+                      {response.message}
+                    </p>
+                  )}
+
+                  {response.attachments && response.attachments.length > 0 && (
+                    <div className="ml-11 mt-2">
+                      <AttachmentViewer
+                        attachments={response.attachments.map(
+                          (att: Attachment) => ({
+                            id: att.id,
+                            filename: att.filename,
+                            url: att.url,
+                            fileType: att.fileType as
+                              | "image"
+                              | "video"
+                              | "audio"
+                              | "document",
+                            format: att.filename
+                              .split(".")
+                              .pop()
+                              ?.toLowerCase(),
+                          }),
+                        )}
+                        showTitle={false}
+                        gridCols={5}
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

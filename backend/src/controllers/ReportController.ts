@@ -322,7 +322,7 @@ class ReportController {
       const user = req.user as { id: string };
       const params = { ...req.query, userId: user.id };
 
-      const reports = await ReportService.getAllReports(params);
+      const reports = await ReportService.getMyReports(params);
       res.json({
         success: true,
         message: `Retrieved ${reports.total} user reports`,
