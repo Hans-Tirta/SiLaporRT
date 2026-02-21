@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import { useLocation } from "react-router-dom";
 import { Send, User, MapPin, ChevronLeft, FileText } from "lucide-react";
 import { useAuthContext } from "../../contexts/AuthContext";
 import { Report } from "../../types/report.types";
@@ -36,6 +37,7 @@ type Message = {
 
 const ChatPage: React.FC = () => {
   const { user } = useAuthContext();
+  const location = useLocation();
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -179,6 +181,20 @@ const ChatPage: React.FC = () => {
       fetchReports();
     }
   }, [user]);
+
+  // Auto-select report if reportId is passed via navigation state
+  useEffect(() => {
+    const state = location.state as { reportId?: string } | null;
+    if (state?.reportId && reports.length > 0) {
+      const report = reports.find((r) => r.id === state.reportId);
+      if (report) {
+        setSelectedReport(report);
+        setMobileView("chat");
+        // Clear the state after using it
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [location.state, reports]);
 
   useEffect(() => {
     toast.info("Socket connecting", "Success");

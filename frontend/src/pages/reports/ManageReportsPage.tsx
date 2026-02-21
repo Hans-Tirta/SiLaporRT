@@ -28,7 +28,7 @@ import {
 import Badge from "../../components/ui/Badge";
 import Pagination from "../../components/ui/Pagination";
 import Input from "../../components/ui/Input";
-import { Report } from "../../types/report.types";
+import { Report, Role } from "../../types/report.types";
 import AdvancedFilter, {
   FilterField,
 } from "../../components/common/AdvancedFilter";
@@ -772,18 +772,18 @@ export default function ManageReportsPage() {
                               </span>
                             </Badge>
                           </td>
-                          <td className="py-5">
-                            <div className="text-xs text-gray-600 dark:text-gray-300">
-                              <p className="font-medium">
+                          <td className="py-5 max-w-0">
+                            <div className="text-xs text-gray-600 dark:text-gray-300 w-full">
+                              <p className="font-medium whitespace-nowrap overflow-hidden text-ellipsis">
                                 {formatDate(report.createdAt)}
                               </p>
                               {report.user && !report.isAnonymous && (
-                                <p className="text-gray-500 dark:text-gray-300 truncate">
+                                <p className="text-gray-500 dark:text-gray-300 whitespace-nowrap overflow-hidden text-ellipsis max-w-[120px]">
                                   oleh {report.user.name}
                                 </p>
                               )}
                               {report.isAnonymous && (
-                                <p className="text-gray-500 dark:text-gray-300">
+                                <p className="text-gray-500 dark:text-gray-300 whitespace-nowrap">
                                   Anonim
                                 </p>
                               )}
@@ -797,16 +797,32 @@ export default function ManageReportsPage() {
                             </Badge>
                           </td>
                           <td className="py-5 pr-4">
-                            <Button
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openDialog();
-                                setCurrentReportId(report.id);
-                              }}
-                            >
-                              Tanggapi
-                            </Button>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openDialog();
+                                  setCurrentReportId(report.id);
+                                }}
+                              >
+                                Tanggapi
+                              </Button>
+                              {report.status === "IN_PROGRESS" && report.user?.role === Role.CITIZEN && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate("/admin/chat", { state: { reportId: report.id } });
+                                  }}
+                                  title="Buka Chat"
+                                  className="ml-2"
+                                >
+                                  <MessageCircle className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );
