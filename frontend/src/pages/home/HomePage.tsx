@@ -33,6 +33,7 @@ const HomePage: React.FC = () => {
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ["recent-reports"],
     queryFn: getRecentReports,
+    enabled: isAuthenticated,
   });
 
   const { data: reportStatistic } = useQuery({
@@ -207,18 +208,18 @@ const HomePage: React.FC = () => {
                 </div>
               ) : (
                 <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                  <Link to="/reports">
+                  <Link to="/login">
                     <Button size="lg" className="w-full sm:w-auto">
-                      Lihat Laporan Publik
+                      Masuk untuk Melaporkan
                     </Button>
                   </Link>
-                  <Link to="/login">
+                  <Link to="/register">
                     <Button
                       variant="outline"
                       size="lg"
                       className="w-full sm:w-auto"
                     >
-                      Masuk untuk Melaporkan
+                      Daftar Akun
                     </Button>
                   </Link>
                 </div>
@@ -298,75 +299,79 @@ const HomePage: React.FC = () => {
           </div>
         </section>
 
-        <section>
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle>Laporan Terbaru</CardTitle>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    Aktivitas terkini dari warga RT
-                  </p>
+        {isAuthenticated && (
+          <section>
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>Laporan Terbaru</CardTitle>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      Aktivitas terkini dari warga RT
+                    </p>
+                  </div>
+                  <Link to="/reports">
+                    <Button variant="outline" size="sm">
+                      Lihat Semua
+                    </Button>
+                  </Link>
                 </div>
-                <Link to="/reports">
-                  <Button variant="outline" size="sm">
-                    Lihat Semua
-                  </Button>
-                </Link>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {isLoading && (
-                  <>
-                    {Array.from({ length: 3 }).map((_, index) => (
-                      <ReportListItemSkeleton key={`skeleton-${index}`} />
-                    ))}
-                  </>
-                )}
-                {isError && (
-                  <Card>
-                    <CardContent className="p-12 text-center">
-                      <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                        Gagal Memuat Laporan Terbaru
-                      </h3>
-                      <p className="text-gray-600 dark:text-gray-300 mb-6">
-                        Terjadi kesalahan saat memuat data laporan terbaru.
-                        Silakan coba lagi.
-                      </p>
-                      <Button
-                        variant="outline"
-                        onClick={() => refetch()}
-                        loading={isFetching}
-                        className="w-full sm:w-auto"
-                      >
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                        Coba Lagi
-                      </Button>
-                    </CardContent>
-                  </Card>
-                )}
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {isLoading && (
+                    <>
+                      {Array.from({ length: 3 }).map((_, index) => (
+                        <ReportListItemSkeleton key={`skeleton-${index}`} />
+                      ))}
+                    </>
+                  )}
+                  {isError && (
+                    <Card>
+                      <CardContent className="p-12 text-center">
+                        <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                          Gagal Memuat Laporan Terbaru
+                        </h3>
+                        <p className="text-gray-600 dark:text-gray-300 mb-6">
+                          Terjadi kesalahan saat memuat data laporan terbaru.
+                          Silakan coba lagi.
+                        </p>
+                        <Button
+                          variant="outline"
+                          onClick={() => refetch()}
+                          loading={isFetching}
+                          className="w-full sm:w-auto"
+                        >
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          Coba Lagi
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  )}
 
-                {!isLoading && items.length > 0 ? (
-                  items.map((r: Report) => <ReportListItem key={r.id} r={r} />)
-                ) : (
-                  <Card>
-                    <CardContent className="p-12 text-center">
-                      <FileText className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-300 mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                        Belum Ada Laporan
-                      </h3>
-                      <p className="text-gray-600 dark:text-gray-300">
-                        Laporan akan muncul ketika tersedia.
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </section>
+                  {!isLoading && items.length > 0 ? (
+                    items.map((r: Report) => (
+                      <ReportListItem key={r.id} r={r} />
+                    ))
+                  ) : (
+                    <Card>
+                      <CardContent className="p-12 text-center">
+                        <FileText className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-300 mb-4" />
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                          Belum Ada Laporan
+                        </h3>
+                        <p className="text-gray-600 dark:text-gray-300">
+                          Laporan akan muncul ketika tersedia.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </section>
+        )}
 
         <section>
           <FaqItems />

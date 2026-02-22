@@ -49,7 +49,6 @@ export default function ManageReportsPage() {
   const [pageSize, setPageSize] = useState(5);
   const [q, setQ] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedPriority, setSelectedPriority] = useState("");
   const [selectedStatus, setSelectedStatus] = useState(
     searchParams.get("status") || "",
   );
@@ -229,7 +228,6 @@ export default function ManageReportsPage() {
         pageSize,
         q,
         selectedCategory,
-        selectedPriority,
         selectedStatus,
         selectedVisibility,
         dateRange,
@@ -246,7 +244,6 @@ export default function ManageReportsPage() {
         pageSize,
         q,
         category: selectedCategory,
-        priority: selectedPriority,
         status: selectedStatus,
         visibility: selectedVisibility,
         dateFrom: dateRange.from,
@@ -279,7 +276,6 @@ export default function ManageReportsPage() {
           pageSize,
           q,
           selectedCategory,
-          selectedPriority,
           selectedStatus,
           selectedVisibility,
           dateRange,
@@ -294,7 +290,6 @@ export default function ManageReportsPage() {
             pageSize,
             q,
             selectedCategory,
-            selectedPriority,
             selectedStatus,
             selectedVisibility,
             dateRange,
@@ -326,7 +321,6 @@ export default function ManageReportsPage() {
               pageSize,
               q,
               selectedCategory,
-              selectedPriority,
               selectedStatus,
               selectedVisibility,
               dateRange,
@@ -424,20 +418,6 @@ export default function ManageReportsPage() {
     return labels[status as keyof typeof labels] || status;
   };
 
-  const getPriorityIndicator = (report: Report) => {
-    const daysSinceCreated = Math.floor(
-      (Date.now() - new Date(report.createdAt).getTime()) /
-        (1000 * 60 * 60 * 24),
-    );
-
-    if (report.upvoteCount >= 10 || daysSinceCreated >= 7) {
-      return { level: "HIGH", color: "text-red-500", label: "Tinggi" };
-    } else if (report.upvoteCount >= 5 || daysSinceCreated >= 3) {
-      return { level: "NORMAL", color: "text-yellow-500", label: "Normal" };
-    }
-    return { level: "LOW", color: "text-green-500", label: "Rendah" };
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("id-ID", {
       year: "numeric",
@@ -477,7 +457,6 @@ export default function ManageReportsPage() {
 
   const handleResetFilters = () => {
     setSelectedCategory("");
-    setSelectedPriority("");
     setSelectedStatus("");
     setSelectedVisibility("");
     setDateRange({});
@@ -490,7 +469,6 @@ export default function ManageReportsPage() {
   const activeFilterCount = useMemo(() => {
     let count = 0;
     if (selectedCategory) count++;
-    if (selectedPriority) count++;
     if (selectedStatus) count++;
     if (selectedVisibility) count++;
     if (dateRange.from || dateRange.to) count++;
@@ -499,7 +477,6 @@ export default function ManageReportsPage() {
     return count;
   }, [
     selectedCategory,
-    selectedPriority,
     selectedStatus,
     selectedVisibility,
     dateRange,
@@ -519,23 +496,6 @@ export default function ManageReportsPage() {
         setPage(1);
       },
       options: categoryOptions,
-    },
-    {
-      name: "priority",
-      label: "Prioritas",
-      type: "select",
-      value: selectedPriority,
-      onChange: (value) => {
-        setSelectedPriority(value as string);
-        setPage(1);
-      },
-      options: [
-        { value: "", label: "Semua Prioritas" },
-        { value: "LOW", label: "Rendah" },
-        { value: "NORMAL", label: "Normal" },
-        { value: "HIGH", label: "Tinggi" },
-        { value: "URGENT", label: "Urgent" },
-      ],
     },
     {
       name: "status",
@@ -671,13 +631,12 @@ export default function ManageReportsPage() {
               <div className="hidden lg:block overflow-x-auto">
                 <table className="min-w-full table-fixed">
                   <colgroup>
-                    <col className="w-[30%]" /> {/* Laporan - 30% */}
-                    <col className="w-[12%]" /> {/* Kategori - 12% */}
-                    <col className="w-[10%]" /> {/* Prioritas - 10% */}
-                    <col className="w-[10%]" /> {/* Visibilitas - 10% */}
-                    <col className="w-[15%]" /> {/* Tanggal - 15% */}
-                    <col className="w-[12%]" /> {/* Status - 12% */}
-                    <col className="w-[11%]" /> {/* Action - 11% */}
+                    <col className="w-[32%]" /> {/* Laporan */}
+                    <col className="w-[13%]" /> {/* Kategori */}
+                    <col className="w-[12%]" /> {/* Visibilitas */}
+                    <col className="w-[17%]" /> {/* Tanggal */}
+                    <col className="w-[13%]" /> {/* Status */}
+                    <col className="w-[13%]" /> {/* Action */}
                   </colgroup>
                   <thead>
                     <tr className="border-b border-gray-200 dark:border-gray-700">
@@ -686,9 +645,6 @@ export default function ManageReportsPage() {
                       </th>
                       <th className="text-left py-4 pr-4 text-sm font-medium text-gray-600 dark:text-gray-300">
                         Kategori
-                      </th>
-                      <th className="text-left py-4 pr-4 text-sm font-medium text-gray-600 dark:text-gray-300">
-                        Prioritas
                       </th>
                       <th className="text-left py-4 pr-4 text-sm font-medium text-gray-600 dark:text-gray-300">
                         Visibilitas
@@ -706,8 +662,6 @@ export default function ManageReportsPage() {
                   </thead>
                   <tbody>
                     {items.map((report: Report) => {
-                      const priority = getPriorityIndicator(report);
-
                       return (
                         <tr
                           key={report.id}
@@ -750,15 +704,6 @@ export default function ManageReportsPage() {
                             <Badge variant="default" size="sm">
                               <span className="block truncate text-xs">
                                 {getCategoryLabel(report.category)}
-                              </span>
-                            </Badge>
-                          </td>
-                          <td className="py-5 pr-4">
-                            <Badge variant="default" size="sm">
-                              <span
-                                className={`block truncate text-xs ${priority.color}`}
-                              >
-                                {priority.label}
                               </span>
                             </Badge>
                           </td>
@@ -808,20 +753,23 @@ export default function ManageReportsPage() {
                               >
                                 Tanggapi
                               </Button>
-                              {report.status === "IN_PROGRESS" && report.user?.role === Role.CITIZEN && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigate("/admin/chat", { state: { reportId: report.id } });
-                                  }}
-                                  title="Buka Chat"
-                                  className="ml-2"
-                                >
-                                  <MessageCircle className="h-4 w-4" />
-                                </Button>
-                              )}
+                              {report.status === "IN_PROGRESS" &&
+                                report.user?.role === Role.CITIZEN && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigate("/admin/chat", {
+                                        state: { reportId: report.id },
+                                      });
+                                    }}
+                                    title="Buka Chat"
+                                    className="ml-2"
+                                  >
+                                    <MessageCircle className="h-4 w-4" />
+                                  </Button>
+                                )}
                             </div>
                           </td>
                         </tr>
@@ -834,8 +782,6 @@ export default function ManageReportsPage() {
               {/* Mobile Card View */}
               <div className="lg:hidden space-y-4">
                 {items.map((report: Report) => {
-                  const priority = getPriorityIndicator(report);
-
                   return (
                     <Card
                       key={report.id}
@@ -869,11 +815,6 @@ export default function ManageReportsPage() {
                               size="sm"
                             >
                               {getStatusBadge(report.status).label}
-                            </Badge>
-                            <Badge variant="default" size="sm">
-                              <span className={priority.color}>
-                                {priority.label}
-                              </span>
                             </Badge>
                             <Badge
                               variant={report.isPublic ? "success" : "warning"}

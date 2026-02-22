@@ -82,7 +82,6 @@ const ReportsPage: React.FC = () => {
     { value: "PENDING", label: "Menunggu" },
     { value: "IN_PROGRESS", label: "Dalam Proses" },
     { value: "RESOLVED", label: "Selesai" },
-    { value: "REJECTED", label: "Ditolak" },
   ];
 
   const sortByOptions = [

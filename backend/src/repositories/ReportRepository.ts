@@ -114,8 +114,12 @@ class ReportRepository {
         ];
       }
       if (category) where.category = category;
-      if (priority) where.priority = priority;
-      if (status) where.status = status;
+
+      if (status) {
+        where.status = status;
+      } else if (!includePrivate) {
+        where.status = { notIn: ["REJECTED"] };
+      }
 
       if (dateFrom || dateTo) {
         where.createdAt = {};
@@ -151,18 +155,10 @@ class ReportRepository {
           }
         }
 
-        const total = await prisma.report.count({
-          where: {
-            ...where,
-            status: { notIn: ["RESOLVED", "REJECTED", "CLOSED"] },
-          },
-        });
+        const total = await prisma.report.count({ where });
 
         const reportsWithUpvotes = await prisma.report.findMany({
-          where: {
-            ...where,
-            status: { notIn: ["RESOLVED", "REJECTED", "CLOSED"] },
-          },
+          where,
           include: {
             location: true,
             user: {
@@ -203,17 +199,9 @@ class ReportRepository {
       }
 
       const [total, items] = await Promise.all([
-        prisma.report.count({
-          where: {
-            ...where,
-            status: { notIn: ["RESOLVED", "REJECTED", "CLOSED"] },
-          },
-        }),
+        prisma.report.count({ where }),
         prisma.report.findMany({
-          where: {
-            ...where,
-            status: { notIn: ["RESOLVED", "REJECTED", "CLOSED"] },
-          },
+          where,
           skip,
           take: pageSize,
           include: {
@@ -608,13 +596,17 @@ class ReportRepository {
     } catch (error) {}
   }
 
-  static async getReportsByCategory(category: string) {
+  static async getReportsByCategory(category: string, rtId?: string) {
     try {
+      const where: any = {
+        category: category as any,
+        isPublic: true,
+      };
+      if (rtId) {
+        where.user = { rtId };
+      }
       return await prisma.report.findMany({
-        where: {
-          category: category as any,
-          isPublic: true,
-        },
+        where,
         include: {
           location: true,
           user: { select: { id: true, name: true, role: true } },
@@ -627,10 +619,14 @@ class ReportRepository {
     }
   }
 
-  static async getReportsByStatus(status: ReportStatus) {
+  static async getReportsByStatus(status: ReportStatus, rtId?: string) {
     try {
+      const where: any = { status };
+      if (rtId) {
+        where.user = { rtId };
+      }
       return await prisma.report.findMany({
-        where: { status },
+        where,
         include: {
           location: true,
           user: { select: { id: true, name: true, role: true } },
@@ -659,8 +655,19 @@ class ReportRepository {
     }
   }
 
-  static async getRecentReports() {
+  static async getRecentReports(rtId?: string) {
     const where: any = { ...visibleWhere() };
+
+    // Filter by RT ID if provided
+    if (rtId) {
+      where.user = {
+        rtId: rtId,
+      };
+    }
+
+    // Exclude closed reports
+    where.status = { notIn: ["REJECTED"] };
+
     const [total, items] = await Promise.all([
       prisma.report.count({ where }),
       prisma.report.findMany({

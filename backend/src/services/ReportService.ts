@@ -268,19 +268,23 @@ class ReportService {
     }
   }
 
-  static async getReportsByCategory(category: string) {
+  static async getReportsByCategory(category: string, rtId?: string) {
     try {
-      const reports = await ReportRepository.getReportsByCategory(category);
+      const reports = await ReportRepository.getReportsByCategory(
+        category,
+        rtId,
+      );
       return { reports, count: reports.length };
     } catch (error) {
       throw new Error(`Failed to fetch reports by category: ${error}`);
     }
   }
 
-  static async getReportsByStatus(status: string) {
+  static async getReportsByStatus(status: string, rtId?: string) {
     try {
       const reports = await ReportRepository.getReportsByStatus(
         status as ReportStatus,
+        rtId,
       );
       return {
         reports,
@@ -303,8 +307,8 @@ class ReportService {
     }
   }
 
-  static async getRecentReports() {
-    const { items } = await ReportRepository.getRecentReports();
+  static async getRecentReports(rtId?: string) {
+    const { items } = await ReportRepository.getRecentReports(rtId);
     return { items };
   }
 

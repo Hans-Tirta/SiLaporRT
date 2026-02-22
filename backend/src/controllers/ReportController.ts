@@ -220,6 +220,8 @@ class ReportController {
 
   static async getReportsByCategory(req: Request, res: Response) {
     const { category } = req.params;
+    const user = req.user as { id: string; rtId?: string };
+    const rtId = user?.rtId;
 
     if (!category)
       return res
@@ -227,7 +229,7 @@ class ReportController {
         .json({ success: false, message: "Category is required" });
 
     try {
-      const reports = await ReportService.getReportsByCategory(category);
+      const reports = await ReportService.getReportsByCategory(category, rtId);
       res.json({
         success: true,
         data: reports,
@@ -246,6 +248,8 @@ class ReportController {
 
   static async getReportsByStatus(req: Request, res: Response) {
     const { status } = req.params;
+    const user = req.user as { id: string; rtId?: string };
+    const rtId = user?.rtId;
 
     if (!status)
       return res
@@ -253,7 +257,7 @@ class ReportController {
         .json({ success: false, message: "Status is required" });
 
     try {
-      const reports = await ReportService.getReportsByStatus(status);
+      const reports = await ReportService.getReportsByStatus(status, rtId);
       res.json({
         success: true,
         data: reports,
@@ -300,7 +304,8 @@ class ReportController {
 
   static async getRecentReports(req: Request, res: Response) {
     try {
-      const reports = await ReportService.getRecentReports();
+      const user = req.user as { id: string; rtId?: string };
+      const reports = await ReportService.getRecentReports(user?.rtId);
       res.json({
         success: true,
         data: reports,
