@@ -33,4 +33,26 @@ export class ChatRepository {
   static async startChat(reportId: string) {
     return prisma.chat.create({ data: { reportId } });
   }
+
+  static async hasUnread(
+    excludeUserId: string,
+    rtId?: string,
+  ): Promise<boolean> {
+    const unread = await prisma.message.findFirst({
+      where: {
+        isRead: false,
+        userId: { not: excludeUserId },
+        chat: {
+          report: {
+            user: {
+              rtId: rtId,
+            },
+          },
+        },
+      },
+      select: { id: true },
+    });
+
+    return !!unread;
+  }
 }

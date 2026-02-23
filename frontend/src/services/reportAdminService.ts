@@ -46,7 +46,7 @@ export async function adminListReports(params: {
 export async function updateReportStatus(
   reportId: string,
   status: string,
-  message?: string
+  message?: string,
 ) {
   const res = await request(`/reports/${reportId}/status`, {
     method: "PUT",
@@ -62,7 +62,7 @@ export async function updateReportStatus(
 export async function addOfficialResponse(
   reportId: string,
   message: string,
-  attachments?: string[]
+  attachments?: string[],
 ) {
   const res = await request(`/reports/${reportId}/response`, {
     method: "POST",

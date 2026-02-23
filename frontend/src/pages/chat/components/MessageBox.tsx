@@ -67,10 +67,10 @@ const MessageBox = ({ msg, user, idx, sortedMessages }: MessageBoxProps) => {
         }`}
       >
         {msg.userId === user?.id ? (
-          <div className="max-w-[85%] sm:max-w-[70%]">
+          <div className="max-w-[85%] sm:max-w-[70%] overflow-hidden">
             <div className="rounded-lg p-2 bg-primary-600 text-white">
               <div className="flex items-end gap-2">
-                <p className="text-sm whitespace-pre-wrap break-words flex-1">
+                <p className="text-sm whitespace-pre-wrap break-all flex-1 min-w-0">
                   {msg.message}
                 </p>
                 <div className="flex items-center gap-1 flex-shrink-0">
@@ -100,9 +100,9 @@ const MessageBox = ({ msg, user, idx, sortedMessages }: MessageBoxProps) => {
                 {msg.user.name}
               </p>
 
-              <div className="rounded-lg p-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white w-fit">
+              <div className="rounded-lg p-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white max-w-full overflow-hidden">
                 <div className="flex items-end gap-2">
-                  <p className="text-sm whitespace-pre-wrap break-words">
+                  <p className="text-sm whitespace-pre-wrap break-all flex-1 min-w-0">
                     {msg.message}
                   </p>
                   <div className="flex items-center gap-1 flex-shrink-0">
