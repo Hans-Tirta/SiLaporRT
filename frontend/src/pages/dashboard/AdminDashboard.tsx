@@ -336,6 +336,7 @@ const AdminDashboard: React.FC = () => {
             fields={filterFields}
             activeFilterCount={activeFilterCount}
             onReset={handleResetFilters}
+            dropdownClassName="left-0 lg:left-auto lg:right-0"
           />
         </div>
       </div>

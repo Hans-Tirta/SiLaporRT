@@ -603,6 +603,7 @@ export default function ManageReportsPage() {
                 fields={filterFields}
                 activeFilterCount={activeFilterCount}
                 onReset={handleResetFilters}
+                dropdownClassName="left-0 md:left-auto md:right-0"
               />
             </div>
           </div>
