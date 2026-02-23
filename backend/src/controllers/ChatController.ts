@@ -82,7 +82,6 @@ export class ChatController {
           data: result,
         });
       }
-      console.log("result", result);
       res.status(201).json({
         success: true,
         message: "There is an unread message",
