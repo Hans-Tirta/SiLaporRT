@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useRef } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   FileText,
@@ -59,9 +59,13 @@ export default function ManageReportsPage() {
   const [sortBy, setSortBy] = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const rejectDialogRef = useRef<HTMLDivElement>(null);
   const [currentReportId, setCurrentReportId] = useState<string | null>(null);
+  const [currentReport, setCurrentReport] = useState<Report | null>(null);
   const [message, setMessage] = useState<string | undefined>(undefined);
+  const [rejectionReason, setRejectionReason] = useState<string>("");
   const [dialogAttachments, setDialogAttachments] = useState<
     {
       id: string;
@@ -82,6 +86,7 @@ export default function ManageReportsPage() {
   const [responseError, setResponseError] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
   const [isResponseLoading, setIsResponseLoading] = useState(false);
+  const [rejectionError, setRejectionError] = useState<string | null>(null);
   const toast = useToast();
 
   useEffect(() => {
@@ -136,6 +141,44 @@ export default function ManageReportsPage() {
     };
   };
 
+  const closeDialog = () => {
+    document.body.style.overflow = "auto";
+    setIsDialogOpen(false);
+    setMessage(undefined);
+    setDialogAttachments([]);
+    setCurrentReportId(null);
+    setCurrentReport(null);
+    setImageError(null);
+    setResponseError(null);
+  };
+
+  const closeRejectModal = () => {
+    setIsRejectModalOpen(false);
+    setRejectionReason("");
+    setRejectionError(null);
+  };
+
+  const cancelRejection = useCallback(() => {
+    setIsRejectModalOpen(false);
+    setRejectionReason("");
+    setRejectionError(null);
+    document.body.style.overflow = "hidden";
+    setIsDialogOpen(true);
+  }, []);
+
+  const openDialog = (report: Report) => {
+    setCurrentReport(report);
+    setCurrentReportId(report.id);
+    document.body.style.overflow = "hidden";
+    setIsDialogOpen(true);
+  };
+
+  const openRejectModal = () => {
+    setIsDialogOpen(false);
+    document.body.style.overflow = "hidden";
+    setIsRejectModalOpen(true);
+  };
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -144,6 +187,12 @@ export default function ManageReportsPage() {
       ) {
         closeDialog();
       }
+      if (
+        rejectDialogRef.current &&
+        !rejectDialogRef.current.contains(event.target as Node)
+      ) {
+        cancelRejection();
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
@@ -151,26 +200,7 @@ export default function ManageReportsPage() {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, []);
-
-  const closeDialog = () => {
-    document.body.style.overflow = "auto";
-    setIsDialogOpen(false);
-    setMessage(undefined);
-    setDialogAttachments([]);
-    setCurrentReportId(null);
-    setImageError(null);
-    setResponseError(null);
-  };
-
-  const openDialog = () => {
-    if (isDialogOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "auto";
-    }
-    setIsDialogOpen(true);
-  };
+  }, [cancelRejection]);
 
   const handleDialogUploaded = (files: CloudinaryFile[]) => {
     const mapped = files.map((f) => {
@@ -225,6 +255,63 @@ export default function ManageReportsPage() {
     }
   };
 
+  const handleAcceptReport = async () => {
+    setIsResponseLoading(true);
+    try {
+      if (!currentReportId) return;
+
+      // Update status to IN_PROGRESS with response message
+      // Backend will create response entry and send notification
+      await updateReportStatus(
+        currentReportId,
+        "IN_PROGRESS",
+        "Laporan ini akan diproses"
+      );
+
+      closeDialog();
+      toast.success("Laporan berhasil diterima", "Berhasil");
+      qc.invalidateQueries({ queryKey: ["admin-reports"] });
+      qc.invalidateQueries({ queryKey: ["reports"] });
+      qc.invalidateQueries({ queryKey: ["report", currentReportId] });
+    } catch (error) {
+      toast.error("Terjadi kesalahan saat menerima laporan", "Gagal");
+      console.error("Accept report error:", error);
+    } finally {
+      setIsResponseLoading(false);
+    }
+  };
+
+  const handleSubmitRejection = async () => {
+    setIsResponseLoading(true);
+    setRejectionError(null);
+    try {
+      if (!currentReportId) return;
+
+      if (!rejectionReason.trim()) {
+        setRejectionError("Alasan penolakan harus diisi");
+        setIsResponseLoading(false);
+        return;
+      }
+
+      // Update status to REJECTED with rejection reason as response message
+      // Backend will create response entry and send notification
+      await updateReportStatus(currentReportId, "REJECTED", rejectionReason);
+      
+      closeRejectModal();
+      closeDialog();
+      document.body.style.overflow = "auto";
+      toast.success("Laporan berhasil ditolak", "Berhasil");
+      qc.invalidateQueries({ queryKey: ["admin-reports"] });
+      qc.invalidateQueries({ queryKey: ["reports"] });
+      qc.invalidateQueries({ queryKey: ["report", currentReportId] });
+    } catch (error) {
+      toast.error("Terjadi kesalahan saat menolak laporan", "Gagal");
+      console.error(error);
+    } finally {
+      setIsResponseLoading(false);
+    }
+  };
+
   const { data, isLoading, isError } = useQuery({
     queryKey: [
       "admin-reports",
@@ -259,88 +346,6 @@ export default function ManageReportsPage() {
       });
     },
     staleTime: 0,
-  });
-
-  const statusMutation = useMutation({
-    mutationFn: ({
-      id,
-      status,
-      message,
-    }: {
-      id: string;
-      status: string;
-      message?: string;
-    }) => updateReportStatus(id, status, message),
-    onMutate: async ({ id, status }) => {
-      await qc.cancelQueries({ queryKey: ["admin-reports"] });
-
-      const previousData = qc.getQueryData([
-        "admin-reports",
-        {
-          page,
-          pageSize,
-          q,
-          selectedCategory,
-          selectedStatus,
-          selectedVisibility,
-          dateRange,
-        },
-      ]);
-
-      qc.setQueryData(
-        [
-          "admin-reports",
-          {
-            page,
-            pageSize,
-            q,
-            selectedCategory,
-            selectedStatus,
-            selectedVisibility,
-            dateRange,
-          },
-        ],
-        (old: unknown) => {
-          if (!old || typeof old !== "object") return old;
-          const data = old as { items: Report[]; total: number };
-          return {
-            ...data,
-            items: data.items.map((item: Report) =>
-              item.id === id
-                ? { ...item, status: status as Report["status"] }
-                : item,
-            ),
-          };
-        },
-      );
-
-      return { previousData };
-    },
-    onError: (_err, _variables, context) => {
-      if (context?.previousData) {
-        qc.setQueryData(
-          [
-            "admin-reports",
-            {
-              page,
-              pageSize,
-              q,
-              selectedCategory,
-              selectedStatus,
-              selectedVisibility,
-              dateRange,
-            },
-          ],
-          context.previousData,
-        );
-      }
-    },
-    onSettled: (_, __, variables) => {
-      qc.invalidateQueries({ queryKey: ["admin-reports"] });
-      qc.invalidateQueries({ queryKey: ["reports"] });
-      qc.invalidateQueries({ queryKey: ["report", variables.id] });
-      qc.invalidateQueries({ queryKey: ["report-statistics"] });
-    },
   });
 
   const items = data?.items ?? [];
@@ -435,15 +440,6 @@ export default function ManageReportsPage() {
 
   const handleViewClick = (report: Report) => {
     navigate(`/admin/reports/${report.id}`);
-  };
-
-  const handleStatusChange = (reportId: string, newStatus: string) => {
-    const report = items.find((r: Report) => r.id === reportId);
-    if (!report) return;
-
-    // For status changes that need a reason, we might want to show a modal
-    // For now, let's do a quick status update
-    statusMutation.mutate({ id: reportId, status: newStatus });
   };
 
   const handlePageSizeChange = (newPageSize: number) => {
@@ -753,9 +749,9 @@ export default function ManageReportsPage() {
                                 size="sm"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  openDialog();
-                                  setCurrentReportId(report.id);
+                                  openDialog(report);
                                 }}
+                                disabled={report.status === "RESOLVED" || report.status === "REJECTED"}
                               >
                                 Tanggapi
                               </Button>
@@ -850,22 +846,34 @@ export default function ManageReportsPage() {
                             </div>
                           </div>
 
-                          <div className="pt-2 border-t border-gray-100">
-                            <select
-                              value={report.status}
-                              onChange={(e) => {
+                          <div className="pt-2 border-t border-gray-100 dark:border-gray-600 flex gap-2">
+                            <Button
+                              size="sm"
+                              className="flex-1"
+                              onClick={(e) => {
                                 e.stopPropagation();
-                                handleStatusChange(report.id, e.target.value);
+                                openDialog(report);
                               }}
-                              className="w-full text-sm border rounded px-3 py-2"
-                              onClick={(e) => e.stopPropagation()}
+                              disabled={report.status === "RESOLVED" || report.status === "REJECTED"}
                             >
-                              <option value="PENDING">Menunggu</option>
-                              <option value="IN_PROGRESS">Dalam Proses</option>
-                              <option value="RESOLVED">Selesai</option>
-                              <option value="REJECTED">Ditolak</option>
-                              <option value="CLOSED">Ditutup</option>
-                            </select>
+                              Tanggapi
+                            </Button>
+                            {report.status === "IN_PROGRESS" &&
+                              report.user?.role === Role.CITIZEN && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate("/admin/chat", {
+                                      state: { reportId: report.id },
+                                    });
+                                  }}
+                                  title="Buka Chat"
+                                >
+                                  <MessageCircle className="h-4 w-4" />
+                                </Button>
+                              )}
                           </div>
                         </div>
                       </CardContent>
@@ -891,54 +899,224 @@ export default function ManageReportsPage() {
         </CardContent>
       </Card>
 
-      {isDialogOpen && (
+      {isDialogOpen && currentReport && (
+        <>
+          <div className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-40 mb-0" />
+
+          {currentReport.status === "PENDING" ? (
+            // Modal for PENDING status - Accept/Reject
+            <Card
+              ref={dialogRef}
+              className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-[600px] bg-gray-50 dark:bg-gray-800 rounded-3xl max-h-[85vh] overflow-y-auto"
+            >
+              <CardHeader className="flex flex-row justify-between">
+                <CardTitle>Tanggapi Laporan</CardTitle>
+                <X
+                  className="w-5 h-5 hover:cursor-pointer"
+                  onClick={closeDialog}
+                />
+              </CardHeader>
+
+              <CardContent>
+                <div className="flex flex-col gap-4">
+                  {/* Report Details */}
+                  <div className="space-y-3 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600">
+                    <h3 className="text-base font-bold text-gray-800 dark:text-white mb-3 pb-2 border-b border-gray-300 dark:border-gray-600">
+                      Detail Laporan
+                    </h3>
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1">
+                        Judul
+                      </h3>
+                      <p className="text-base text-gray-900 dark:text-white">
+                        {currentReport.title}
+                      </p>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1">
+                        Deskripsi
+                      </h3>
+                      <p className="text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap">
+                        {currentReport.description}
+                      </p>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1">
+                        Kategori
+                      </h3>
+                      <Badge variant="default" size="sm">
+                        {getCategoryLabel(currentReport.category)}
+                      </Badge>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1">
+                        Lokasi
+                      </h3>
+                      <div className="flex items-start gap-2">
+                        <MapPin className="h-4 w-4 mt-0.5 text-gray-500" />
+                        <p className="text-sm text-gray-700 dark:text-gray-200">
+                          {currentReport.location.address}
+                        </p>
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1">
+                        Tanggal Dibuat
+                      </h3>
+                      <p className="text-sm text-gray-700 dark:text-gray-200">
+                        {formatDate(currentReport.createdAt)}
+                      </p>
+                    </div>
+                    {currentReport.attachments &&
+                      currentReport.attachments.length > 0 && (
+                        <div>
+                          <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">
+                            Lampiran
+                          </h3>
+                          <div className="grid grid-cols-2 gap-2">
+                            {currentReport.attachments.map((attachment) => (
+                              <img
+                                key={attachment.id}
+                                src={attachment.url}
+                                alt={attachment.filename}
+                                className="w-full h-32 object-cover rounded-lg"
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                  </div>
+
+                  {/* Accept/Reject Buttons */}
+                  <div className="flex gap-3 pt-4">
+                    <Button
+                      className="flex-1"
+                      variant="primary"
+                      onClick={handleAcceptReport}
+                      loading={isResponseLoading}
+                      disabled={isResponseLoading}
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Terima Laporan
+                    </Button>
+                    <Button
+                      className="flex-1"
+                      variant="danger"
+                      onClick={openRejectModal}
+                      disabled={isResponseLoading}
+                    >
+                      <XCircle className="h-4 w-4 mr-2" />
+                      Tolak Laporan
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            // Modal for IN_PROGRESS status - Response with message and attachments
+            <Card
+              ref={dialogRef}
+              className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-[500px] bg-gray-50 dark:bg-gray-800 rounded-3xl max-h-[85vh] overflow-y-auto"
+            >
+              <CardHeader className="flex flex-row justify-between">
+                <CardTitle>Tanggapi Laporan</CardTitle>
+                <X
+                  className="w-5 h-5 hover:cursor-pointer"
+                  onClick={closeDialog}
+                />
+              </CardHeader>
+
+              <CardContent>
+                <div className="flex flex-col gap-4">
+                  <Textarea
+                    label="Pesan Tanggapan"
+                    showCounter
+                    limit={200}
+                    placeholder="Isi Tanggapan Anda"
+                    error={responseError}
+                    onChange={(e) => setMessage(e.target.value)}
+                  />
+
+                  <CloudinaryUpload
+                    folder="reports"
+                    multiple
+                    accept="image/jpeg,image/png,image/jpg"
+                    maxFiles={3}
+                    attachments={dialogAttachments}
+                    onUploaded={handleDialogUploaded}
+                    onRemove={handleDialogRemove}
+                    onUploadingChange={setIsUploading}
+                    error={imageError}
+                  />
+
+                  <Button
+                    onClick={handleSubmitResponse}
+                    disabled={
+                      isUploading || (!message && dialogAttachments.length === 0)
+                    }
+                    loading={isResponseLoading}
+                  >
+                    {isUploading ? "Mengunggah..." : "Kirim Tanggapan"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+
+      {/* Rejection Reason Modal */}
+      {isRejectModalOpen && (
         <>
           <div className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-40 mb-0" />
 
           <Card
-            ref={dialogRef}
+            ref={rejectDialogRef}
             className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-[500px] bg-gray-50 dark:bg-gray-800 rounded-3xl max-h-[85vh] overflow-y-auto"
           >
             <CardHeader className="flex flex-row justify-between">
-              <CardTitle>Tanggapi Laporan</CardTitle>
+              <CardTitle>Alasan Penolakan</CardTitle>
               <X
                 className="w-5 h-5 hover:cursor-pointer"
-                onClick={closeDialog}
+                onClick={cancelRejection}
               />
             </CardHeader>
 
             <CardContent>
               <div className="flex flex-col gap-4">
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Mohon berikan alasan mengapa laporan ini ditolak.
+                </p>
+
                 <Textarea
-                  label="Pesan Tanggapan"
+                  label="Alasan Penolakan"
                   showCounter
-                  limit={200}
-                  placeholder="Isi Tanggapan Anda"
-                  error={responseError}
-                  onChange={(e) => setMessage(e.target.value)}
+                  limit={500}
+                  placeholder="Masukkan alasan penolakan laporan"
+                  value={rejectionReason}
+                  error={rejectionError}
+                  onChange={(e) => setRejectionReason(e.target.value)}
                 />
 
-                <CloudinaryUpload
-                  folder="reports"
-                  multiple
-                  accept="image/jpeg,image/png,image/jpg"
-                  maxFiles={3}
-                  attachments={dialogAttachments}
-                  onUploaded={handleDialogUploaded}
-                  onRemove={handleDialogRemove}
-                  onUploadingChange={setIsUploading}
-                  error={imageError}
-                />
-
-                <Button
-                  onClick={handleSubmitResponse}
-                  disabled={
-                    isUploading || (!message && dialogAttachments.length === 0)
-                  }
-                  loading={isResponseLoading}
-                >
-                  {isUploading ? "Mengunggah..." : "Kirim Tanggapan"}
-                </Button>
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    className="flex-1"
+                    variant="outline"
+                    onClick={cancelRejection}
+                    disabled={isResponseLoading}
+                  >
+                    Batal
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    variant="danger"
+                    onClick={handleSubmitRejection}
+                    loading={isResponseLoading}
+                    disabled={isResponseLoading || !rejectionReason.trim()}
+                  >
+                    Tolak Laporan
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
