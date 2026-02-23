@@ -1,16 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-import {
-  FileText,
-  Users,
-  Clock,
-  CheckCircle,
-  AlertTriangle,
-  MessageSquare,
-  ArrowRight,
-  Megaphone,
-  Activity,
-} from "lucide-react";
+import { FileText, Users, Clock, AlertTriangle, Megaphone } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -35,7 +25,7 @@ const AdminDashboard: React.FC = () => {
   const { user } = useAuthContext();
   const [selectedPeriod, setSelectedPeriod] = useState("bulan-ini");
   const [dateRange, setDateRange] = useState<{ from?: string; to?: string }>(
-    {}
+    {},
   );
   const [displayDateRange, setDisplayDateRange] = useState<{
     from?: string;
@@ -45,12 +35,12 @@ const AdminDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dashboardData, setDashboardData] = useState<DashboardStats | null>(
-    null
+    null,
   );
   const [totalAnnouncements, setTotalAnnouncements] = useState<number>(0);
 
   const getDateRangeForPeriod = (
-    period: string
+    period: string,
   ): { from: string; to: string } | null => {
     const today = new Date();
 
@@ -75,7 +65,7 @@ const AdminDashboard: React.FC = () => {
         const lastDayOfWeek = new Date(today);
         const dayOfWeek = today.getDay();
 
-        const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; 
+        const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
         firstDayOfWeek.setDate(today.getDate() - diff);
 
         const daysUntilSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
@@ -90,12 +80,12 @@ const AdminDashboard: React.FC = () => {
         const firstDayOfMonth = new Date(
           today.getFullYear(),
           today.getMonth(),
-          1
+          1,
         );
         const lastDayOfMonth = new Date(
           today.getFullYear(),
           today.getMonth() + 1,
-          0
+          0,
         );
         return {
           from: formatDate(firstDayOfMonth),
@@ -111,7 +101,7 @@ const AdminDashboard: React.FC = () => {
         };
       }
       case "custom":
-        return null; 
+        return null;
       default:
         return null;
     }
@@ -160,7 +150,7 @@ const AdminDashboard: React.FC = () => {
     } catch (err) {
       console.error("Error fetching dashboard data:", err);
       setError(
-        err instanceof Error ? err.message : "Failed to load dashboard data"
+        err instanceof Error ? err.message : "Failed to load dashboard data",
       );
     } finally {
       setLoading(false);
@@ -277,42 +267,6 @@ const AdminDashboard: React.FC = () => {
         "#6b7280",
     }));
   };
-
-  // Mock recent activities - simplified
-  const recentActivities = [
-    {
-      id: "1",
-      type: "NEW_REPORT",
-      message: 'Laporan baru: "Jalan berlubang di RT 05"',
-      user: "Budi Santoso",
-      time: "2 jam lalu",
-      icon: FileText,
-    },
-    {
-      id: "2",
-      type: "STATUS_UPDATE",
-      message: 'Laporan "Lampu jalan mati" selesai ditindaklanjuti',
-      user: "Admin RT",
-      time: "4 jam lalu",
-      icon: CheckCircle,
-    },
-    {
-      id: "3",
-      type: "NEW_ANNOUNCEMENT",
-      message: 'Pengumuman baru: "Rapat Bulanan RT"',
-      user: "Admin RT",
-      time: "6 jam lalu",
-      icon: Megaphone,
-    },
-    {
-      id: "4",
-      type: "NEW_COMMENT",
-      message: "Komentar baru pada laporan infrastruktur",
-      user: "Siti Aminah",
-      time: "1 hari lalu",
-      icon: MessageSquare,
-    },
-  ];
 
   const periodOptions = [
     { value: "hari-ini", label: "Hari Ini" },
@@ -457,54 +411,6 @@ const AdminDashboard: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <CategoryBarChart data={getCategoryChartData()} />
-              </CardContent>
-            </Card>
-
-            <Card className="xl:col-span-4">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Activity className="mr-2 h-5 w-5 text-green-500" />
-                  Aktivitas Terbaru
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-3">
-                  {recentActivities.slice(0, 4).map((activity) => {
-                    const Icon = activity.icon;
-
-                    return (
-                      <div
-                        key={activity.id}
-                        className="flex items-start space-x-3"
-                      >
-                        <div className="flex-shrink-0">
-                          <div className="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                            <Icon className="h-4 w-4 text-gray-600 dark:text-gray-200" />
-                          </div>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-gray-900 dark:text-gray-100 mb-1">
-                            {activity.message}
-                          </p>
-                          <div className="flex items-center text-xs text-gray-500 dark:text-gray-200">
-                            <span>{activity.user}</span>
-                            <span className="mx-1">•</span>
-                            <span>{activity.time}</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="mt-4 pt-2 border-t border-gray-100">
-                  <Link to="/admin/activities">
-                    <Button variant="ghost" size="sm" className="w-full">
-                      Lihat Semua Aktivitas
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </Link>
-                </div>
               </CardContent>
             </Card>
           </div>
