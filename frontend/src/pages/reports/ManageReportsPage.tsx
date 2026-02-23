@@ -39,6 +39,7 @@ import { CloudinaryFile } from "../../types/announcement.types";
 import { classifyFile } from "../../utils/classifyFile";
 import { useToast } from "../../hooks/useToast";
 import Textarea from "../../components/ui/Textarea";
+import AttachmentViewer from "../../components/ui/AttachmentViewer";
 
 export default function ManageReportsPage() {
   const navigate = useNavigate();
@@ -265,7 +266,7 @@ export default function ManageReportsPage() {
       await updateReportStatus(
         currentReportId,
         "IN_PROGRESS",
-        "Laporan ini akan diproses"
+        "Laporan ini akan diproses",
       );
 
       closeDialog();
@@ -296,7 +297,7 @@ export default function ManageReportsPage() {
       // Update status to REJECTED with rejection reason as response message
       // Backend will create response entry and send notification
       await updateReportStatus(currentReportId, "REJECTED", rejectionReason);
-      
+
       closeRejectModal();
       closeDialog();
       document.body.style.overflow = "auto";
@@ -751,7 +752,10 @@ export default function ManageReportsPage() {
                                   e.stopPropagation();
                                   openDialog(report);
                                 }}
-                                disabled={report.status === "RESOLVED" || report.status === "REJECTED"}
+                                disabled={
+                                  report.status === "RESOLVED" ||
+                                  report.status === "REJECTED"
+                                }
                               >
                                 Tanggapi
                               </Button>
@@ -854,7 +858,10 @@ export default function ManageReportsPage() {
                                 e.stopPropagation();
                                 openDialog(report);
                               }}
-                              disabled={report.status === "RESOLVED" || report.status === "REJECTED"}
+                              disabled={
+                                report.status === "RESOLVED" ||
+                                report.status === "REJECTED"
+                              }
                             >
                               Tanggapi
                             </Button>
@@ -912,7 +919,7 @@ export default function ManageReportsPage() {
               <CardHeader className="flex flex-row justify-between">
                 <CardTitle>Tanggapi Laporan</CardTitle>
                 <X
-                  className="w-5 h-5 hover:cursor-pointer"
+                  className="w-5 h-5 hover:cursor-pointer text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                   onClick={closeDialog}
                 />
               </CardHeader>
@@ -920,7 +927,7 @@ export default function ManageReportsPage() {
               <CardContent>
                 <div className="flex flex-col gap-4">
                   {/* Report Details */}
-                  <div className="space-y-3 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600">
+                  <div className="space-y-3 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600">
                     <h3 className="text-base font-bold text-gray-800 dark:text-white mb-3 pb-2 border-b border-gray-300 dark:border-gray-600">
                       Detail Laporan
                     </h3>
@@ -953,7 +960,7 @@ export default function ManageReportsPage() {
                         Lokasi
                       </h3>
                       <div className="flex items-start gap-2">
-                        <MapPin className="h-4 w-4 mt-0.5 text-gray-500" />
+                        <MapPin className="h-4 w-4 mt-0.5 text-gray-500 dark:text-gray-400" />
                         <p className="text-sm text-gray-700 dark:text-gray-200">
                           {currentReport.location.address}
                         </p>
@@ -970,19 +977,26 @@ export default function ManageReportsPage() {
                     {currentReport.attachments &&
                       currentReport.attachments.length > 0 && (
                         <div>
-                          <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">
-                            Lampiran
-                          </h3>
-                          <div className="grid grid-cols-2 gap-2">
-                            {currentReport.attachments.map((attachment) => (
-                              <img
-                                key={attachment.id}
-                                src={attachment.url}
-                                alt={attachment.filename}
-                                className="w-full h-32 object-cover rounded-lg"
-                              />
-                            ))}
-                          </div>
+                          <AttachmentViewer
+                            attachments={currentReport.attachments.map(
+                              (attachment) => ({
+                                id: attachment.id,
+                                filename: attachment.filename,
+                                url: attachment.url,
+                                fileType: attachment.fileType as
+                                  | "image"
+                                  | "video"
+                                  | "audio"
+                                  | "document",
+                                format: attachment.filename
+                                  .split(".")
+                                  .pop()
+                                  ?.toLowerCase(),
+                              }),
+                            )}
+                            title="Lampiran"
+                            gridCols={2}
+                          />
                         </div>
                       )}
                   </div>
@@ -1021,7 +1035,7 @@ export default function ManageReportsPage() {
               <CardHeader className="flex flex-row justify-between">
                 <CardTitle>Tanggapi Laporan</CardTitle>
                 <X
-                  className="w-5 h-5 hover:cursor-pointer"
+                  className="w-5 h-5 hover:cursor-pointer text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                   onClick={closeDialog}
                 />
               </CardHeader>
@@ -1052,7 +1066,8 @@ export default function ManageReportsPage() {
                   <Button
                     onClick={handleSubmitResponse}
                     disabled={
-                      isUploading || (!message && dialogAttachments.length === 0)
+                      isUploading ||
+                      (!message && dialogAttachments.length === 0)
                     }
                     loading={isResponseLoading}
                   >
@@ -1077,7 +1092,7 @@ export default function ManageReportsPage() {
             <CardHeader className="flex flex-row justify-between">
               <CardTitle>Alasan Penolakan</CardTitle>
               <X
-                className="w-5 h-5 hover:cursor-pointer"
+                className="w-5 h-5 hover:cursor-pointer text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                 onClick={cancelRejection}
               />
             </CardHeader>

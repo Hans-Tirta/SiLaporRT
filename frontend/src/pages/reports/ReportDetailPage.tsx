@@ -27,15 +27,10 @@ import {
   addComment,
   getUserUpvoteStatus,
 } from "../../services/reportService";
-import {
-  updateReportStatus,
-  addOfficialResponse,
-} from "../../services/reportAdminService";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Attachment, Response, ReportComment } from "../../types/report.types";
 import ReportDetailSkeleton from "./components/ReportDetailSkeleton";
 import { useAuthContext } from "../../contexts/AuthContext";
-import { Role } from "../../types/auth.types";
 import {
   GoogleMap,
   Libraries,
@@ -49,14 +44,10 @@ const ReportDetailPage: React.FC = () => {
   const { user, isAuthenticated } = useAuthContext();
   const queryClient = useQueryClient();
   const [commentText, setCommentText] = useState("");
-  const [adminResponseText, setAdminResponseText] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState("");
   const libraries: Libraries = ["places"];
 
   const lastUpvoteTime = useRef<number>(0);
   const UPVOTE_COOLDOWN = 500;
-
-  const isAdmin = user?.role === Role.RT_ADMIN;
 
   const isFromAdmin =
     location.state?.from === "admin" ||
@@ -180,52 +171,9 @@ const ReportDetailPage: React.FC = () => {
     },
   });
 
-  const updateStatusMutation = useMutation({
-    mutationFn: ({ status, message }: { status: string; message?: string }) =>
-      updateReportStatus(report!.id, status, message),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["report"] });
-      queryClient.invalidateQueries({ queryKey: ["reports"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-reports"] });
-      setSelectedStatus("");
-    },
-    onError: (error) => {
-      console.error("Error updating status:", error);
-    },
-  });
-
-  const addResponseMutation = useMutation({
-    mutationFn: (message: string) => addOfficialResponse(report!.id, message),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["report"] });
-      queryClient.invalidateQueries({ queryKey: ["reports"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-reports"] });
-      setAdminResponseText("");
-    },
-    onError: (error) => {
-      console.error("Error adding response:", error);
-    },
-  });
-
   const handleSubmitComment = async () => {
     if (!commentText.trim()) return;
     addCommentMutation.mutate(commentText);
-  };
-
-  const handleStatusChange = (status: string) => {
-    if (status === selectedStatus) return;
-    setSelectedStatus(status);
-
-    if (status === "REJECTED") {
-      updateStatusMutation.mutate({ status });
-    } else {
-      updateStatusMutation.mutate({ status });
-    }
-  };
-
-  const handleSubmitResponse = () => {
-    if (!adminResponseText.trim()) return;
-    addResponseMutation.mutate(adminResponseText);
   };
 
   if (isLoading) return <ReportDetailSkeleton />;
@@ -537,224 +485,150 @@ const ReportDetailPage: React.FC = () => {
         </Card>
       )}
 
-      {/* Kontrol Admin + Diskusi & Komentar */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Kontrol Admin */}
-        {isAdmin && (
-          <div className="lg:order-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Kontrol Admin</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Status Update */}
-                <div>
-                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
-                    Ubah Status
-                  </label>
-                  <select
-                    value={selectedStatus || report.status}
-                    onChange={(e) => handleStatusChange(e.target.value)}
-                    className="w-full text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    disabled={updateStatusMutation.isPending}
-                  >
-                    <option value="PENDING">Menunggu</option>
-                    <option value="IN_PROGRESS">Dalam Proses</option>
-                    <option value="RESOLVED">Selesai</option>
-                    <option value="REJECTED">Ditolak</option>
-                    <option value="CLOSED">Ditutup</option>
-                  </select>
-                </div>
-
-                {/* Quick Response */}
-                <div>
-                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
-                    Tanggapan Resmi
-                  </label>
-                  <Textarea
-                    value={adminResponseText}
-                    onChange={(e) => setAdminResponseText(e.target.value)}
-                    placeholder="Tulis tanggapan resmi untuk warga..."
-                    rows={3}
-                    className="w-full text-sm"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSubmitResponse();
-                      }
-                    }}
-                  />
-                  <Button
-                    onClick={handleSubmitResponse}
-                    disabled={
-                      !adminResponseText.trim() || addResponseMutation.isPending
-                    }
-                    className="w-full mt-2"
-                    size="sm"
-                  >
-                    {addResponseMutation.isPending ? (
-                      <>
-                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                        Mengirim...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="mr-2 h-4 w-4" />
-                        Kirim Tanggapan
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Diskusi & Komentar */}
-        <div className="lg:col-span-2 lg:order-1">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <MessageCircle className="h-6 w-6 dark:text-white" />
-                <CardTitle>Diskusi & Komentar</CardTitle>
-                <span className="text-lg font-bold text-gray-500 dark:text-gray-400">
-                  {report.commentCount}
-                </span>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {/* Comment Form */}
-              {isAuthenticated ? (
-                <div className="mb-6">
-                  <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0">
-                      <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center overflow-hidden justify-center text-sm font-medium text-gray-600 dark:text-gray-300">
-                        {user!.profile ? (
-                          <img
-                            src={user!.profile}
-                            alt={user!.name.charAt(0)}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          user!.name.charAt(0)
-                        )}
-                      </div>
+      {/* Diskusi & Komentar */}
+      <div>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <MessageCircle className="h-6 w-6 dark:text-white" />
+              <CardTitle>Diskusi & Komentar</CardTitle>
+              <span className="text-lg font-bold text-gray-500 dark:text-gray-400">
+                {report.commentCount}
+              </span>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {/* Comment Form */}
+            {isAuthenticated ? (
+              <div className="mb-6">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center overflow-hidden justify-center text-sm font-medium text-gray-600 dark:text-gray-300">
+                      {user!.profile ? (
+                        <img
+                          src={user!.profile}
+                          alt={user!.name.charAt(0)}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        user!.name.charAt(0)
+                      )}
                     </div>
-                    <div className="flex-1">
-                      <Textarea
-                        placeholder="Tulis komentar Anda..."
-                        value={commentText}
-                        onChange={(e) => setCommentText(e.target.value)}
-                        limit={250}
-                        showCounter
-                        rows={3}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault();
-                            handleSubmitComment();
-                          }
-                        }}
-                      />
-                      <div className="flex justify-end mt-2">
-                        <Button
-                          size="sm"
-                          onClick={handleSubmitComment}
-                          disabled={
-                            !commentText.trim() || addCommentMutation.isPending
-                          }
-                          loading={addCommentMutation.isPending}
-                        >
-                          <Send className="mr-1 h-4 w-4" />
-                          Kirim
-                        </Button>
-                      </div>
+                  </div>
+                  <div className="flex-1">
+                    <Textarea
+                      placeholder="Tulis komentar Anda..."
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      limit={250}
+                      showCounter
+                      rows={3}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSubmitComment();
+                        }
+                      }}
+                    />
+                    <div className="flex justify-end mt-2">
+                      <Button
+                        size="sm"
+                        onClick={handleSubmitComment}
+                        disabled={
+                          !commentText.trim() || addCommentMutation.isPending
+                        }
+                        loading={addCommentMutation.isPending}
+                      >
+                        <Send className="mr-1 h-4 w-4" />
+                        Kirim
+                      </Button>
                     </div>
                   </div>
                 </div>
-              ) : (
-                <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
-                  <p className="text-gray-500 dark:text-gray-400 mb-2">
-                    Silakan masuk untuk bergabung dalam diskusi
-                  </p>
-                  <Link to="/login">
-                    <Button size="sm">Masuk</Button>
-                  </Link>
-                </div>
-              )}
+              </div>
+            ) : (
+              <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
+                <p className="text-gray-500 dark:text-gray-400 mb-2">
+                  Silakan masuk untuk bergabung dalam diskusi
+                </p>
+                <Link to="/login">
+                  <Button size="sm">Masuk</Button>
+                </Link>
+              </div>
+            )}
 
-              {/* Comments List */}
-              <div className="space-y-4">
-                {report.reportComments.map((comment: ReportComment) => (
-                  <div key={comment.id} className="flex items-start space-x-3">
-                    <div className="flex-shrink-0">
-                      <div
-                        className={`w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-sm font-medium ${
-                          comment.user.role === "RT_ADMIN"
-                            ? "bg-primary-600 text-white"
-                            : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
-                        }`}
-                      >
-                        {comment.user.isDeleted ? (
-                          <User className="h-4 w-4" />
-                        ) : comment.user.profile ? (
-                          <img
-                            src={comment.user.profile}
-                            alt={comment.user.name.charAt(0).toUpperCase()}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          comment.user.name.charAt(0).toUpperCase()
-                        )}
-                      </div>
+            {/* Comments List */}
+            <div className="space-y-4">
+              {report.reportComments.map((comment: ReportComment) => (
+                <div key={comment.id} className="flex items-start space-x-3">
+                  <div className="flex-shrink-0">
+                    <div
+                      className={`w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-sm font-medium ${
+                        comment.user.role === "RT_ADMIN"
+                          ? "bg-primary-600 text-white"
+                          : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                      }`}
+                    >
+                      {comment.user.isDeleted ? (
+                        <User className="h-4 w-4" />
+                      ) : comment.user.profile ? (
+                        <img
+                          src={comment.user.profile}
+                          alt={comment.user.name.charAt(0).toUpperCase()}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        comment.user.name.charAt(0).toUpperCase()
+                      )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center flex-wrap gap-x-2 gap-y-1 mb-1">
-                        <span
-                          className="font-medium text-gray-900 dark:text-gray-100 truncate max-w-[150px] sm:max-w-[200px]"
-                          title={
-                            comment.user.isDeleted
-                              ? "Pengguna Terhapus"
-                              : comment.user.name
-                          }
-                        >
-                          {comment.user.isDeleted
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center flex-wrap gap-x-2 gap-y-1 mb-1">
+                      <span
+                        className="font-medium text-gray-900 dark:text-gray-100 truncate max-w-[150px] sm:max-w-[200px]"
+                        title={
+                          comment.user.isDeleted
                             ? "Pengguna Terhapus"
-                            : comment.user.name}
-                        </span>
-                        {comment.user.role === "RT_ADMIN" && (
-                          <Badge variant="info" size="sm">
-                            Admin RT
+                            : comment.user.name
+                        }
+                      >
+                        {comment.user.isDeleted
+                          ? "Pengguna Terhapus"
+                          : comment.user.name}
+                      </span>
+                      {comment.user.role === "RT_ADMIN" && (
+                        <Badge variant="info" size="sm">
+                          Admin RT
+                        </Badge>
+                      )}
+                      {comment.user.id === report.user.id &&
+                        !report.isAnonymous && (
+                          <Badge variant="success" size="sm">
+                            Penulis
                           </Badge>
                         )}
-                        {comment.user.id === report.user.id &&
-                          !report.isAnonymous && (
-                            <Badge variant="success" size="sm">
-                              Penulis
-                            </Badge>
-                          )}
-                        <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                          {formatRelativeTime(comment.createdAt)}
-                        </span>
-                      </div>
-                      <p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap break-words">
-                        {comment.content}
-                      </p>
+                      <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                        {formatRelativeTime(comment.createdAt)}
+                      </span>
                     </div>
+                    <p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap break-words">
+                      {comment.content}
+                    </p>
                   </div>
-                ))}
-              </div>
-
-              {report.reportComments.length === 0 && (
-                <div className="text-center py-8">
-                  <MessageCircle className="mx-auto h-8 w-8 text-gray-400 dark:text-gray-500 mb-2" />
-                  <p className="text-gray-500 dark:text-gray-400">
-                    Belum ada komentar
-                  </p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+              ))}
+            </div>
+
+            {report.reportComments.length === 0 && (
+              <div className="text-center py-8">
+                <MessageCircle className="mx-auto h-8 w-8 text-gray-400 dark:text-gray-500 mb-2" />
+                <p className="text-gray-500 dark:text-gray-400">
+                  Belum ada komentar
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
