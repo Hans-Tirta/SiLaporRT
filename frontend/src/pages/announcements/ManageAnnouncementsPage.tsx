@@ -228,7 +228,6 @@ export default function ManageAnnouncementsPage() {
   const getTypeBadge = (type: string) => {
     const variants = {
       GENERAL: { variant: "default" as const, label: "Umum" },
-      URGENT: { variant: "danger" as const, label: "Mendesak" },
       EVENT: { variant: "info" as const, label: "Acara" },
       MAINTENANCE: { variant: "warning" as const, label: "Pemeliharaan" },
       REGULATION: { variant: "info" as const, label: "Peraturan" },
@@ -241,7 +240,6 @@ export default function ManageAnnouncementsPage() {
       LOW: { variant: "default" as const, label: "Rendah" },
       NORMAL: { variant: "default" as const, label: "Normal" },
       HIGH: { variant: "warning" as const, label: "Tinggi" },
-      URGENT: { variant: "danger" as const, label: "Urgent" },
     };
     return variants[priority as keyof typeof variants] || variants.NORMAL;
   };
@@ -307,7 +305,6 @@ export default function ManageAnnouncementsPage() {
       options: [
         { value: "", label: "Semua Jenis" },
         { value: "GENERAL", label: "Umum" },
-        { value: "URGENT", label: "Mendesak" },
         { value: "EVENT", label: "Acara" },
         { value: "MAINTENANCE", label: "Pemeliharaan" },
         { value: "REGULATION", label: "Peraturan" },
@@ -327,7 +324,6 @@ export default function ManageAnnouncementsPage() {
         { value: "LOW", label: "Rendah" },
         { value: "NORMAL", label: "Normal" },
         { value: "HIGH", label: "Tinggi" },
-        { value: "URGENT", label: "Urgent" },
       ],
     },
     {

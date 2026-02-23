@@ -14,12 +14,7 @@ function formatTime(s?: string | null) {
 }
 
 export default function AnnouncementListItem({ a }: { a: Announcement }) {
-  const priorityVariant =
-    a.priority === "URGENT"
-      ? "danger"
-      : a.priority === "HIGH"
-        ? "warning"
-        : "default";
+  const priorityVariant = a.priority === "HIGH" ? "warning" : "default";
 
   return (
     <Card className="hover:shadow-md transition-shadow">

@@ -173,20 +173,25 @@ export default function ManageReportsPage() {
   };
 
   const handleDialogUploaded = (files: CloudinaryFile[]) => {
-    const mapped = files.map((f) => ({
-      id: f.public_id,
-      filename: f.original_filename || "file",
-      url: f.secure_url,
-      fileType: classifyFile(f),
-      provider: "cloudinary" as const,
-      publicId: f.public_id,
-      resourceType: f.resource_type,
-      format: f.format,
-      bytes: f.bytes,
-      width: f.width,
-      height: f.height,
-      createdAt: new Date().toISOString(),
-    }));
+    const mapped = files.map((f) => {
+      const baseName = f.original_filename || "file";
+      const ext = f.format ? `.${f.format}` : "";
+      const filename = baseName.endsWith(ext) ? baseName : `${baseName}${ext}`;
+      return {
+        id: f.public_id,
+        filename,
+        url: f.secure_url,
+        fileType: classifyFile(f),
+        provider: "cloudinary" as const,
+        publicId: f.public_id,
+        resourceType: f.resource_type,
+        format: f.format,
+        bytes: f.bytes,
+        width: f.width,
+        height: f.height,
+        createdAt: new Date().toISOString(),
+      };
+    });
     setDialogAttachments((prev) => [...prev, ...mapped]);
   };
 
