@@ -286,7 +286,7 @@ const Header: React.FC = () => {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute left-0 mt-3 w-96 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl shadow-xs  z-50"
+                        className="absolute right-0 mt-3 w-96 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl shadow-xs  z-50"
                       >
                         <div className="p-3 border-b border-gray-100 dark:border-gray-700 font-semibold text-gray-700 dark:text-gray-200 flex items-center justify-between">
                           <div>

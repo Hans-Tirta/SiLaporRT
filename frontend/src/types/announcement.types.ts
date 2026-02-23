@@ -1,6 +1,5 @@
 export enum AnnouncementType {
   GENERAL = "GENERAL",
-  URGENT = "URGENT",
   EVENT = "EVENT",
   MAINTENANCE = "MAINTENANCE",
   REGULATION = "REGULATION",
@@ -10,7 +9,6 @@ export enum Priority {
   LOW = "LOW",
   NORMAL = "NORMAL",
   HIGH = "HIGH",
-  URGENT = "URGENT",
 }
 
 export type Author = {

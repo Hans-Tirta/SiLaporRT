@@ -462,20 +462,27 @@ const CreateReportPage: React.FC = () => {
               multiple={true}
               accept=".jpg,.jpeg,.png,.mp3,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
               maxFiles={5}
-              attachments={formData.attachments.map((file) => ({
-                filename: file.original_filename || "file",
-                url: file.secure_url,
-                fileType:
-                  (file as ExtendedCloudinaryFile).fileType ||
-                  classifyFile(file),
-                provider: "cloudinary" as const,
-                publicId: file.public_id,
-                resourceType: file.resource_type,
-                format: file.format,
-                bytes: file.bytes,
-                width: file.width,
-                height: file.height,
-              }))}
+              attachments={formData.attachments.map((file) => {
+                const baseName = file.original_filename || "file";
+                const ext = file.format ? `.${file.format}` : "";
+                const filename = baseName.endsWith(ext)
+                  ? baseName
+                  : `${baseName}${ext}`;
+                return {
+                  filename,
+                  url: file.secure_url,
+                  fileType:
+                    (file as ExtendedCloudinaryFile).fileType ||
+                    classifyFile(file),
+                  provider: "cloudinary" as const,
+                  publicId: file.public_id,
+                  resourceType: file.resource_type,
+                  format: file.format,
+                  bytes: file.bytes,
+                  width: file.width,
+                  height: file.height,
+                };
+              })}
               onUploaded={onUploaded}
               onRemove={removeAttachment}
               onUploadingChange={setIsUploading}

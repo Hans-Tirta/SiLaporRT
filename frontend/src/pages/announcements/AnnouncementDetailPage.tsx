@@ -81,12 +81,7 @@ export default function AnnouncementDetailPage() {
     );
   }
 
-  const priorityVariant =
-    a.priority === "URGENT"
-      ? "danger"
-      : a.priority === "HIGH"
-        ? "warning"
-        : "default";
+  const priorityVariant = a.priority === "HIGH" ? "warning" : "default";
 
   // Dynamic breadcrumb based on where user came from
   const breadcrumbItems = isFromAdmin

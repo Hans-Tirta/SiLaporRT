@@ -18,18 +18,18 @@ export type FilterField = {
 
 export type AdvancedFilterProps = {
   fields: FilterField[];
-  onApply?: () => void;
   onReset?: () => void;
   activeFilterCount?: number;
   className?: string;
+  dropdownClassName?: string;
 };
 
 export default function AdvancedFilter({
   fields,
-  onApply,
   onReset,
   activeFilterCount = 0,
   className = "",
+  dropdownClassName,
 }: AdvancedFilterProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -53,11 +53,6 @@ export default function AdvancedFilter({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isOpen]);
-
-  const handleApply = () => {
-    onApply?.();
-    setIsOpen(false);
-  };
 
   const handleReset = () => {
     onReset?.();
@@ -160,12 +155,16 @@ export default function AdvancedFilter({
 
       {/* Dropdown Panel */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50">
+        <div
+          className={`absolute mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 ${dropdownClassName || "right-0"}`}
+        >
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100">Filter Lanjutan</h3>
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                Filter Lanjutan
+              </h3>
             </div>
             <button
               onClick={() => setIsOpen(false)}
@@ -190,18 +189,15 @@ export default function AdvancedFilter({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between gap-2 p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-b-lg">
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-b-lg">
             <Button
               variant="outline"
               size="sm"
               onClick={handleReset}
-              className="flex-1"
+              className="w-full"
             >
               <RotateCcw className="h-3 w-3 mr-1" />
               Reset
-            </Button>
-            <Button size="sm" onClick={handleApply} className="flex-1">
-              Terapkan
             </Button>
           </div>
         </div>

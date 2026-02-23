@@ -284,7 +284,6 @@ model message {
 
 enum AnnouncementType {
   GENERAL     
-  URGENT      
   EVENT       
   MAINTENANCE 
   REGULATION 
@@ -300,5 +299,4 @@ enum Priority {
   LOW
   NORMAL
   HIGH
-  URGENT
 }

@@ -210,19 +210,40 @@ class ReportService {
     }
   }
 
-  static async updateStatus(reportId: string, status: ReportStatus) {
+  static async updateStatus(reportId: string, status: ReportStatus, userId?: string, message?: string) {
     try {
       const updatedReport = await ReportRepository.updateStatus(
         reportId,
         status,
       );
 
+      // If there's a message, create a response entry
+      if (message && userId) {
+        await ReportRepository.addOfficialResponse(
+          reportId,
+          userId,
+          message.trim(),
+          undefined
+        );
+      }
+
       const baseUrl = process.env.FRONTEND_URL_PROD || process.env.FRONTEND_URL;
       const url = `${baseUrl}/reports/${updatedReport.id}`;
+      
+      // Get status label for notification
+      const statusLabels: Record<string, string> = {
+        PENDING: "Menunggu",
+        IN_PROGRESS: "Diproses",
+        RESOLVED: "Selesai",
+        REJECTED: "Ditolak",
+        CLOSED: "Ditutup"
+      };
+      const statusLabel = statusLabels[updatedReport.status] || updatedReport.status;
+      
       await NotificationService.sendNotificationByUserId(
         [updatedReport.userId!],
         `Laporan "${updatedReport.title}" Telah Diperbarui!`,
-        `Status laporan kamu kini berubah menjadi ${updatedReport.status}`,
+        message || `Status laporan kamu kini berubah menjadi ${statusLabel}`,
         url,
         "https://res.cloudinary.com/dgnedkivd/image/upload/v1757562088/silaporrt/dev/logo/logo_lnenhb.png",
         "REPORT",

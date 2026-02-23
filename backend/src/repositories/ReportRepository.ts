@@ -673,12 +673,8 @@ class ReportRepository {
           },
         });
 
-        await tx.report.update({
-          where: { id: reportId },
-          data: {
-            status: ReportStatus.IN_PROGRESS,
-          },
-        });
+        // Don't update status here - let the caller handle status updates
+        // This allows for more flexible status transitions
 
         return response;
       });

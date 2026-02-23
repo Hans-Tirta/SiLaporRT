@@ -1,12 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Save,
-  Calendar,
-  Settings,
-  AlertTriangle,
-  Paperclip,
-} from "lucide-react";
+import { Save, Calendar, AlertTriangle, Paperclip } from "lucide-react";
 import Input from "../../../components/ui/Input";
 import Textarea from "../../../components/ui/Textarea";
 import Select from "../../../components/ui/Select";
@@ -34,7 +28,6 @@ type Props = {
 
 const typeOptions = [
   { value: AnnouncementType.GENERAL, label: "Umum" },
-  { value: AnnouncementType.URGENT, label: "Mendesak" },
   { value: AnnouncementType.EVENT, label: "Acara" },
   { value: AnnouncementType.MAINTENANCE, label: "Pemeliharaan" },
   { value: AnnouncementType.REGULATION, label: "Peraturan" },
@@ -44,7 +37,6 @@ const priorityOptions = [
   { value: Priority.LOW, label: "Rendah" },
   { value: Priority.NORMAL, label: "Normal" },
   { value: Priority.HIGH, label: "Tinggi" },
-  { value: Priority.URGENT, label: "Urgent" },
 ];
 
 function toLocalInput(dt?: string | null) {
@@ -257,8 +249,11 @@ export default function AdminAnnouncementForm({ initial, onSuccess }: Props) {
   function onUploaded(files: CloudinaryFile[]) {
     const mapped = files.map((f) => {
       const fileType = classifyFile(f);
+      const baseName = f.original_filename || "file";
+      const ext = f.format ? `.${f.format}` : "";
+      const filename = baseName.endsWith(ext) ? baseName : `${baseName}${ext}`;
       return {
-        filename: f.original_filename || "file",
+        filename,
         url: f.secure_url,
         fileType,
         provider: "cloudinary" as const,
@@ -282,23 +277,8 @@ export default function AdminAnnouncementForm({ initial, onSuccess }: Props) {
     });
   };
 
-  const urgentBanner =
-    type === AnnouncementType.URGENT || priority === Priority.URGENT;
-
   return (
     <form onSubmit={submit} className="space-y-6">
-      {/* Warning / info banners */}
-      {urgentBanner && (
-        <div className="flex items-start gap-2 rounded-md border border-yellow-300 bg-yellow-50 p-3 text-sm text-yellow-800">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-          <div>
-            <div className="font-medium">Mode prioritas tinggi</div>
-            <div>
-              Pastikan konten ringkas, jelas, dan relevan untuk semua warga.
-            </div>
-          </div>
-        </div>
-      )}
       {(willBeHidden || notYetLive) && (
         <div className="flex items-start gap-2 rounded-md border border-primary-100 bg-primary-50 p-3 text-sm text-primary-700">
           <Calendar className="mt-0.5 h-4 w-4 shrink-0" />
@@ -364,87 +344,53 @@ export default function AdminAnnouncementForm({ initial, onSuccess }: Props) {
       </div>
 
       {/* Scheduling */}
-      <Card className="border-gray-200 dark:border-gray-700">
-        <CardContent className="p-4 bg-gray-50 dark:bg-gray-800">
-          <div className="flex items-center mb-3">
-            <Calendar className="h-4 w-4 text-gray-600 dark:text-gray-300 mr-2" />
-            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
-              Jadwal Pengumuman
-            </h3>
-          </div>
+      <div className="space-y-4">
+        <div className="flex items-center">
+          <Calendar className="h-4 w-4 text-gray-600 dark:text-gray-300 mr-2" />
+          <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
+            Jadwal Pengumuman
+          </h3>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                Mulai Tayang
-              </label>
-              <input
-                type="datetime-local"
-                className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-0"
-                value={publishAt}
-                onChange={(e) => setPublishAt(e.target.value)}
-              />
-              <p className="text-xs text-gray-500 dark:text-gray-300">
-                Kosongkan untuk langsung tayang
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                Berakhir Pada
-              </label>
-              <input
-                type="datetime-local"
-                className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-0"
-                value={expireAt}
-                onChange={(e) => setExpireAt(e.target.value)}
-              />
-              <p className="text-xs text-gray-500 dark:text-gray-300">
-                Kosongkan jika tidak ada tanggal berakhir
-              </p>
-            </div>
-          </div>
-
-          {!!scheduleError && (
-            <div className="mt-3 text-sm text-red-600 flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4" />
-              {scheduleError}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Advanced settings */}
-      <Card className="border-gray-200 dark:border-gray-700">
-        <CardContent className="p-4">
-          <div className="flex items-center mb-3">
-            <Settings className="h-4 w-4 text-gray-600 dark:text-gray-300 mr-2" />
-            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
-              Pengaturan Lanjutan
-            </h3>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <label className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200">
-              <input
-                type="checkbox"
-                checked={isPinned}
-                onChange={(e) => setIsPinned(e.target.checked)}
-              />
-              Pin di atas
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+              Mulai Tayang
             </label>
-
-            <label className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200">
-              <input
-                type="checkbox"
-                checked={isActive}
-                onChange={(e) => setIsActive(e.target.checked)}
-              />
-              Aktif (tampil ke pengguna)
-            </label>
+            <input
+              type="datetime-local"
+              className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-0"
+              value={publishAt}
+              onChange={(e) => setPublishAt(e.target.value)}
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-300">
+              Kosongkan untuk langsung tayang
+            </p>
           </div>
-        </CardContent>
-      </Card>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+              Berakhir Pada
+            </label>
+            <input
+              type="datetime-local"
+              className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-0"
+              value={expireAt}
+              onChange={(e) => setExpireAt(e.target.value)}
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-300">
+              Kosongkan jika tidak ada tanggal berakhir
+            </p>
+          </div>
+        </div>
+
+        {!!scheduleError && (
+          <div className="mt-3 text-sm text-red-600 flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            {scheduleError}
+          </div>
+        )}
+      </div>
 
       {/* Attachments - Updated Section */}
       <Card className="border-gray-200 dark:border-gray-700">

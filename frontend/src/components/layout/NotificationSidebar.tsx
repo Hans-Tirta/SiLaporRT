@@ -105,7 +105,7 @@ export default function NotificationSidebar({
             exit={{ x: sidebarLocation === "left" ? "-100%" : "100%" }}
             transition={{ type: "tween", duration: 0.3 }}
           >
-            <div className="p-4 border-gray-200 flex justify-between items-center bg-gray-50 dark:bg-gray-800">
+            <div className="p-4 border-gray-200 flex justify-between items-center dark:bg-gray-800">
               <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
                 {tabvalue === "unread"
                   ? "Belum Dibaca "
@@ -151,7 +151,7 @@ export default function NotificationSidebar({
                 </TabsTrigger>
               </TabsList>
 
-              <div className="flex-1 overflow-y-auto py-2 bg-gray-50 dark:bg-gray-800">
+              <div className="flex-1 overflow-y-auto py-2 dark:bg-gray-800">
                 <TabsContent value="all">
                   <div className="flex flex-col gap-2 overflow-y-auto max-h-[75vh] sm:max-h-[80vh]">
                     {notifications.length > 0 ? (

@@ -493,8 +493,7 @@ const MyReportsPage: React.FC = () => {
 
         <Link to="/create-report">
           <Button className="w-full sm:w-auto">
-            <Plus className="mr-2 h-4 w-4" />
-            Buat Laporan Baru
+            Buat Laporan
           </Button>
         </Link>
       </div>

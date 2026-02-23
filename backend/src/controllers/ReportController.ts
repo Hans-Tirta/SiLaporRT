@@ -160,18 +160,25 @@ class ReportController {
   static async updateStatus(req: Request, res: Response) {
     try {
       const { reportId } = req.params;
-      const { status } = req.body;
+      const { status, message } = req.body;
       const user = req.user as { id: string };
 
       if (!reportId || !status) {
         throw new Error("Report ID and status are required");
       }
 
+      if (!user || !user.id) {
+        return res.status(401).json({
+          success: false,
+          message: "User authentication required",
+        });
+      }
+
       // if(req.user?.role !== Role.ADMIN && req.user?.id !== adminId) {
       //   throw new Error("You don't have permission to update this report");
       // }
 
-      const result = await ReportService.updateStatus(reportId, status);
+      const result = await ReportService.updateStatus(reportId, status, user.id, message);
 
       res.json({
         success: true,

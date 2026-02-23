@@ -39,7 +39,7 @@ export default function ManageAnnouncementsPage() {
   const [selectedType, setSelectedType] = useState("");
   const [selectedPriority, setSelectedPriority] = useState("");
   const [dateRange, setDateRange] = useState<{ from?: string; to?: string }>(
-    {}
+    {},
   );
   const [sortBy, setSortBy] = useState("");
 
@@ -110,10 +110,10 @@ export default function ManageAnnouncementsPage() {
           return {
             ...data,
             items: data.items.map((item: Announcement) =>
-              item.id === id ? { ...item, isPinned } : item
+              item.id === id ? { ...item, isPinned } : item,
             ),
           };
-        }
+        },
       );
 
       return { previousData };
@@ -133,7 +133,7 @@ export default function ManageAnnouncementsPage() {
               dateRange,
             },
           ],
-          context.previousData
+          context.previousData,
         );
       }
     },
@@ -185,10 +185,10 @@ export default function ManageAnnouncementsPage() {
           return {
             ...data,
             items: data.items.map((item: Announcement) =>
-              item.id === id ? { ...item, isActive } : item
+              item.id === id ? { ...item, isActive } : item,
             ),
           };
-        }
+        },
       );
 
       return { previousData };
@@ -208,7 +208,7 @@ export default function ManageAnnouncementsPage() {
               dateRange,
             },
           ],
-          context.previousData
+          context.previousData,
         );
       }
     },
@@ -228,7 +228,6 @@ export default function ManageAnnouncementsPage() {
   const getTypeBadge = (type: string) => {
     const variants = {
       GENERAL: { variant: "default" as const, label: "Umum" },
-      URGENT: { variant: "danger" as const, label: "Mendesak" },
       EVENT: { variant: "info" as const, label: "Acara" },
       MAINTENANCE: { variant: "warning" as const, label: "Pemeliharaan" },
       REGULATION: { variant: "info" as const, label: "Peraturan" },
@@ -241,7 +240,6 @@ export default function ManageAnnouncementsPage() {
       LOW: { variant: "default" as const, label: "Rendah" },
       NORMAL: { variant: "default" as const, label: "Normal" },
       HIGH: { variant: "warning" as const, label: "Tinggi" },
-      URGENT: { variant: "danger" as const, label: "Urgent" },
     };
     return variants[priority as keyof typeof variants] || variants.NORMAL;
   };
@@ -307,7 +305,6 @@ export default function ManageAnnouncementsPage() {
       options: [
         { value: "", label: "Semua Jenis" },
         { value: "GENERAL", label: "Umum" },
-        { value: "URGENT", label: "Mendesak" },
         { value: "EVENT", label: "Acara" },
         { value: "MAINTENANCE", label: "Pemeliharaan" },
         { value: "REGULATION", label: "Peraturan" },
@@ -327,7 +324,6 @@ export default function ManageAnnouncementsPage() {
         { value: "LOW", label: "Rendah" },
         { value: "NORMAL", label: "Normal" },
         { value: "HIGH", label: "Tinggi" },
-        { value: "URGENT", label: "Urgent" },
       ],
     },
     {
@@ -374,7 +370,9 @@ export default function ManageAnnouncementsPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold text-primary-600">Kelola Pengumuman</h1>
+        <h1 className="text-3xl font-bold text-primary-600">
+          Kelola Pengumuman
+        </h1>
         <p className="text-gray-600 dark:text-gray-200 mt-1">
           Buat dan atur pengumuman untuk warga RT
         </p>
@@ -397,6 +395,7 @@ export default function ManageAnnouncementsPage() {
                 fields={filterFields}
                 activeFilterCount={activeFilterCount}
                 onReset={handleResetFilters}
+                dropdownClassName="left-0 lg:left-auto lg:right-0"
               />
             </div>
           </div>
@@ -459,7 +458,7 @@ export default function ManageAnnouncementsPage() {
                     {items.map((announcement: Announcement) => {
                       const typeBadge = getTypeBadge(announcement.type);
                       const priorityBadge = getPriorityBadge(
-                        announcement.priority
+                        announcement.priority,
                       );
 
                       return (
