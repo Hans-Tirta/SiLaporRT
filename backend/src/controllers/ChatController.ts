@@ -62,4 +62,38 @@ export class ChatController {
       });
     }
   }
+
+  static async hasUnread(req: Request, res: Response) {
+    const user = req.user as { id: string; rtId?: string };
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+    try {
+      const result = await ChatService.hasUnread(user.id, user.rtId);
+      console.log({ result });
+      if (result === false) {
+        return res.status(201).json({
+          success: true,
+          message: "No unread messages",
+          data: result,
+        });
+      }
+      console.log("result", result);
+      res.status(201).json({
+        success: true,
+        message: "There is an unread message",
+        data: result,
+      });
+    } catch (error: any) {
+      console.error("Error in createReport controller:", error);
+      res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
 }

@@ -22,6 +22,7 @@ import { Notification } from "../../types/notification.types";
 import { useQuery } from "@tanstack/react-query";
 import { getNotifications } from "../../services/authService";
 import NotificationSidebar from "./NotificationSidebar";
+import { hasUnread } from "../../services/chatService";
 
 interface SidebarProps {
   className?: string;
@@ -31,6 +32,7 @@ interface SubMenuItem {
   path: string;
   label: string;
   icon?: React.ComponentType<{ className?: string }>;
+  notification?: boolean;
 }
 
 interface MenuItem {
@@ -38,6 +40,7 @@ interface MenuItem {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   submenu?: SubMenuItem[];
+  notification?: boolean;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ className }) => {
@@ -50,6 +53,13 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isLoggingOut, logout } = useAuthContext();
+
+  const { data: chatHasUnread } = useQuery({
+    queryKey: ["chatHasUnread"],
+    queryFn: hasUnread,
+    enabled: isAuthenticated,
+    refetchInterval: 30000,
+  });
 
   const toggleNotification = () => {
     if (window.innerWidth < 640) setNotificationSidebar(true);
@@ -131,6 +141,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
       path: "/admin/chat",
       label: "Chat Laporan",
       icon: MessageCircle,
+      notification: chatHasUnread?.data === true,
     },
   ];
 
@@ -147,7 +158,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
 
   const toggleMenu = (path: string) => {
     setOpenMenus((prev) =>
-      prev.includes(path) ? prev.filter((p) => p !== path) : [...prev, path]
+      prev.includes(path) ? prev.filter((p) => p !== path) : [...prev, path],
     );
   };
 
@@ -189,7 +200,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
           isMobileMenuOpen
             ? "translate-x-0"
             : "-translate-x-full lg:translate-x-0",
-          className
+          className,
         )}
       >
         {/* Header/Logo Section */}
@@ -259,7 +270,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
                       "flex w-full items-center justify-between rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-200",
                       isParentItemActive
                         ? "bg-primary-50 text-primary-700 dark:bg-gray-700 dark:text-gray-100"
-                        : "text-gray-600 dark:text-gray-300 hover:bg-primary-50 hover:text-primary-700 dark:hover:bg-gray-700 dark:hover:text-gray-100"
+                        : "text-gray-600 dark:text-gray-300 hover:bg-primary-50 hover:text-primary-700 dark:hover:bg-gray-700 dark:hover:text-gray-100",
                     )}
                   >
                     <div className="flex items-center space-x-3">
@@ -280,10 +291,15 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
                       "flex items-center space-x-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-200",
                       isActive
                         ? "bg-primary-50 text-primary-700 dark:bg-gray-700 dark:text-gray-100"
-                        : "text-gray-600 dark:text-gray-300 hover:bg-primary-50 hover:text-primary-700 dark:hover:bg-gray-700 dark:hover:text-gray-100"
+                        : "text-gray-600 dark:text-gray-300 hover:bg-primary-50 hover:text-primary-700 dark:hover:bg-gray-700 dark:hover:text-gray-100",
                     )}
                   >
-                    <Icon className="h-5 w-5 flex-shrink-0" />
+                    <div className="relative">
+                      <Icon className="h-5 w-5 flex-shrink-0" />
+                      {item.notification && (
+                        <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-red-500" />
+                      )}
+                    </div>
                     <span>{item.label}</span>
                   </Link>
                 )}
@@ -304,7 +320,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
                             "flex items-center space-x-3 rounded-md px-3 py-2 text-sm transition-all duration-200",
                             isSubActive
                               ? "bg-primary-50 text-primary-700 dark:bg-gray-700 dark:text-gray-100 font-medium"
-                              : "text-gray-600 dark:text-gray-300 hover:bg-primary-50 hover:text-primary-700 dark:hover:bg-gray-700 dark:hover:text-gray-100"
+                              : "text-gray-600 dark:text-gray-300 hover:bg-primary-50 hover:text-primary-700 dark:hover:bg-gray-700 dark:hover:text-gray-100",
                           )}
                         >
                           {SubIcon && (
@@ -335,7 +351,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
                 "flex-1 flex items-center space-x-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
                 isActivePath("/admin/profile")
                   ? "bg-primary-50 text-primary-700 dark:bg-gray-700 dark:text-gray-100"
-                  : "text-gray-600 dark:text-gray-300 hover:bg-primary-50 hover:text-primary-700 dark:hover:bg-gray-700 dark:hover:text-gray-100"
+                  : "text-gray-600 dark:text-gray-300 hover:bg-primary-50 hover:text-primary-700 dark:hover:bg-gray-700 dark:hover:text-gray-100",
               )}
             >
               <UserCircle className="h-5 w-5 flex-shrink-0" />
@@ -378,7 +394,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
             <LogOut
               className={cn(
                 "h-5 w-5 flex-shrink-0",
-                isLoggingOut && "animate-spin"
+                isLoggingOut && "animate-spin",
               )}
             />
             <span>{isLoggingOut ? "Keluar..." : "Keluar"}</span>

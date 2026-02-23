@@ -15,4 +15,8 @@ export class ChatService {
   static async getChatIdFromReportId(reportId: string) {
     return ChatRepository.getChatIdFromReportId(reportId);
   }
+
+  static async hasUnread(userId: string, rtId?: string) {
+    return ChatRepository.hasUnread(userId, rtId);
+  }
 }

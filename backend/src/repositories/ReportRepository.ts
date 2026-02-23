@@ -89,6 +89,7 @@ class ReportRepository {
     upvoteDateFrom,
     upvoteDateTo,
     rtId,
+    requestingUserId,
   }: any) {
     try {
       const where: any = userId ? {} : { ...visibleWhere(includePrivate) };
@@ -182,6 +183,22 @@ class ReportRepository {
               where: upvoteWhere,
               select: { id: true },
             },
+            chat: {
+              include: {
+                _count: {
+                  select: {
+                    message: {
+                      where: {
+                        isRead: false,
+                        ...(requestingUserId
+                          ? { userId: { not: requestingUserId } }
+                          : {}),
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
         });
 
@@ -191,14 +208,18 @@ class ReportRepository {
           )
           .slice(skip, skip + pageSize)
           .map((report: any) => {
-            const { reportUpvotes, ...rest } = report;
-            return rest;
+            const { reportUpvotes, chat, ...rest } = report;
+            const unreadCount = chat.reduce(
+              (sum: number, c: any) => sum + (c._count?.message ?? 0),
+              0,
+            );
+            return { ...rest, unreadCount };
           });
 
         return { total, items: sortedReports };
       }
 
-      const [total, items] = await Promise.all([
+      const [total, rawItems] = await Promise.all([
         prisma.report.count({ where }),
         prisma.report.findMany({
           where,
@@ -223,10 +244,36 @@ class ReportRepository {
             attachments: {
               select: { id: true, filename: true, url: true, fileType: true },
             },
+            chat: {
+              include: {
+                _count: {
+                  select: {
+                    message: {
+                      where: {
+                        isRead: false,
+                        ...(requestingUserId
+                          ? { userId: { not: requestingUserId } }
+                          : {}),
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
           orderBy,
         }),
       ]);
+
+      const items = rawItems.map((report: any) => {
+        const { chat, ...rest } = report;
+        const unreadCount = chat.reduce(
+          (sum: number, c: any) => sum + (c._count?.message ?? 0),
+          0,
+        );
+        return { ...rest, unreadCount };
+      });
+
       return { total, items };
     } catch (error) {
       throw error;
@@ -340,6 +387,20 @@ class ReportRepository {
               where: upvoteWhere,
               select: { id: true },
             },
+            chat: {
+              include: {
+                _count: {
+                  select: {
+                    message: {
+                      where: {
+                        isRead: false,
+                        ...(userId ? { userId: { not: userId } } : {}),
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
         });
 
@@ -349,14 +410,18 @@ class ReportRepository {
           )
           .slice(skip, skip + pageSize)
           .map((report: any) => {
-            const { reportUpvotes, ...rest } = report;
-            return rest;
+            const { reportUpvotes, chat, ...rest } = report;
+            const unreadCount = chat.reduce(
+              (sum: number, c: any) => sum + (c._count?.message ?? 0),
+              0,
+            );
+            return { ...rest, unreadCount };
           });
 
         return { total, items: sortedReports };
       }
 
-      const [total, items] = await Promise.all([
+      const [total, rawItems] = await Promise.all([
         prisma.report.count({
           where,
         }),
@@ -383,10 +448,34 @@ class ReportRepository {
             attachments: {
               select: { id: true, filename: true, url: true, fileType: true },
             },
+            chat: {
+              include: {
+                _count: {
+                  select: {
+                    message: {
+                      where: {
+                        isRead: false,
+                        ...(userId ? { userId: { not: userId } } : {}),
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
           orderBy,
         }),
       ]);
+
+      const items = rawItems.map((report: any) => {
+        const { chat, ...rest } = report;
+        const unreadCount = chat.reduce(
+          (sum: number, c: any) => sum + (c._count?.message ?? 0),
+          0,
+        );
+        return { ...rest, unreadCount };
+      });
+
       return { total, items };
     } catch (error) {
       throw error;
