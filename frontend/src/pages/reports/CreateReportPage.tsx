@@ -109,11 +109,11 @@ const CreateReportPage: React.FC = () => {
       value: "CLEANLINESS",
     },
     {
-      label: "Kejahatan",
+      label: "Keamanan",
       value: "SECURITY",
     },
     {
-      label: "Sugesti",
+      label: "Saran",
       value: "SUGGESTION",
     },
     {
